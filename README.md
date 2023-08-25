@@ -43,8 +43,8 @@ To switch from Go 1.20.5 to Go 1.21.0:
 **Usage**: `sudo installgo VERSION GOOS GOARCH`
 
 ```bash
-curl -L -s -O https://raw.githubusercontent.com/andreiwashere/install-go/main/install_go.sh
-chmod +x install_go.sh
+wget --no-cache https://raw.githubusercontent.com/andreiwashere/install-go/main/install_go.sh < /dev/null > /dev/null 2>&1
+[ -f install_go.sh ] && chmod +x install_go.sh || echo "Failed to download install_go.sh"
 [ ! -f /usr/bin/installgo ] && sudo mv install_go.sh /usr/bin/installgo || echo "Already installed!"
 source ~/.bashrc
 sudo installgo
@@ -65,8 +65,8 @@ This installs Go to `/go/versions/<VERSION>/src` and sets up your ENV to:
 **Usage**: `sudo switchgo [ list | <version> ]`
 
 ```bash
-curl -L -s -O https://raw.githubusercontent.com/andreiwashere/install-go/main/switch_go.sh
-chmod +x switch_go.sh
+wget --no-cache https://raw.githubusercontent.com/andreiwashere/install-go/main/switch_go.sh < /dev/null > /dev/null 2>&1
+[ -f switch_go.sh ] && chmod +x switch_go.sh || echo "Failed to download switch_go.sh"
 [ ! -f /usr/bin/switchgo ] && sudo mv switch_go.sh /usr/bin/switchgo || echo "Already installed!"
 sudo switchgo list
 ```
