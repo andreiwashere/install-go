@@ -8,6 +8,8 @@
 
 # Usage
 
+## `installgo` Examples
+
 To install the latest (1.21.0) version of Go: 
 
 ```bash
@@ -19,6 +21,8 @@ To install the previous (1.20.5) version of Go:
 ```bash
 sudo installgo 1.20.5 linux amd64
 ```
+
+## `switchgo` Examples
 
 To switch from Go 1.21.0 to Go 1.20.5:
 
@@ -41,11 +45,11 @@ To switch from Go 1.20.5 to Go 1.21.0:
 ```bash
 curl -L -s -O https://raw.githubusercontent.com/andreiwashere/install-go/main/install_go.sh
 chmod +x install_go.sh
-sudo cp install_go.sh /usr/bin/installgo
-sudo installgo 1.21.0 linux amd64
+[ ! -f /usr/bin/installgo ] && sudo mv install_go.sh /usr/bin/installgo || echo "Already installed!"
 source ~/.bashrc
-go version
+sudo installgo
 ```
+
 This installs Go to `/go/versions/<VERSION>/src` and sets up your ENV to: 
 
 | ENV | Value | 
@@ -58,13 +62,17 @@ This installs Go to `/go/versions/<VERSION>/src` and sets up your ENV to:
 
 ## Go Version Switcher
 
+**Usage**: `sudo switchgo [ list | <version> ]`
+
 ```bash
 curl -L -s -O https://raw.githubusercontent.com/andreiwashere/install-go/main/switch_go.sh
 chmod +x switch_go.sh
-sudo cp switch_go.sh /usr/bin/switchgo
+[ ! -f /usr/bin/switchgo ] && sudo mv switch_go.sh /usr/bin/switchgo || echo "Already installed!"
 sudo switchgo list
 ```
+
 Since this script installs your ENV vars in your `/etc/profile` and all `/home/*/.bashrc` and `/root/.bashrc` to the `/go/root`, `/go/path`, and `/go/bin` symlinks, we can use the `switchgo` command to update these symlinks and quickly switch between versions of Go.
 
+# License
 
-
+This project is Open Source under the MIT License.
