@@ -1,7 +1,29 @@
 #!/bin/bash
 
+if [ "$(uname)" != "Linux" ]; then
+  echo "HOLD UP: installgo is only supported on Linux."
+  exit 1
+fi
+
+set -e
+
+cleanup() {
+    [ -f /root/installgo.lock ] && rm -rf /root/installgo.lock || echo "Thank you for using installgo."
+}
+
+trap cleanup EXIT INT TERM
+
+if [ "${DEBUG}" == "1" ]; then
+    set -x
+fi
+
 if [ "$(id -u)" -ne 0 ]; then
   echo "This script must be run as root."
+  exit 1
+fi
+
+if [ -f /root/installgo.lock ]; then
+  echo "Another installation $(cat /root/installgo.lock) is currently running."
   exit 1
 fi
 
@@ -10,10 +32,10 @@ if [ "$#" -lt 1 ] || [ "$#" -gt 3 ]; then
   echo "Usage: "
   echo "       $0 VERSION GOOS GOARCH"
   echo
-  echo "  $0 1.20.0                      # Linux amd64"
-  echo "  $0 1.20.0 darwin amd64         # MacOS amd64"
-  echo "  $0 1.20.0 windows              # Windows amd64"
-  echo "  $0 1.20.0 windows amd64        # Windows amd64"
+  echo "  $0 1.21.0                      # Linux amd64"
+  echo "  $0 1.21.0 darwin amd64         # MacOS amd64"
+  echo "  $0 1.21.0 windows              # Windows amd64"
+  echo "  $0 1.21.0 windows amd64        # Windows amd64"
   echo
   echo " (!) at least 1 argument is required, which is the GO VERSION argument"
   echo " (!) if only 2 arguments are provided, then the 2nd argument will be assigned to to GOOS variable"
@@ -22,9 +44,11 @@ if [ "$#" -lt 1 ] || [ "$#" -gt 3 ]; then
   exit 1
 fi
 
-VERSION="${1:-1.20.0}"
+VERSION="${1:-1.21.0}"
 export GOOS="${2:-linux}"
 export GOARCH="${3:-amd64}"
+
+echo "${VERSION}" > /root/installgo.lock
 
 if [ -f "/go/versions/${VERSION}/installer.lock" ]; then
   echo "Already have Go ${VERSION} installed at /go/versions/${VERSION}"
@@ -141,11 +165,13 @@ fi
 
 declare -A packages=( ["gotop"]="github.com/cjbassi/gotop" ["go-generate-password"]="github.com/m1/go-generate-password/cmd/go-generate-password" ["bombardier"]="github.com/codesenberg/bombardier" )
 for pkg in "${!packages[@]}"; do
-  GOROOT="/go/versions/${VERSION}/src" GOOS="${GOOS}" GOARCH="${GOARCH}" "/go/versions/${VERSION}/src/bin/go" install "${packages[$pkg]}@latest"
+  GOROOT="/go/versions/${VERSION}/src" GOPATH="/go/versions/${VERSION}" GOBIN="/go/versions/${VERSION}/src/bin" GOOS="${GOOS}" GOARCH="${GOARCH}" "/go/versions/${VERSION}/src/bin/go" install "${packages[$pkg]}@latest"
   [ -f "/go/versions/${VERSION}/src/bin/${pkg}" ] && echo "Installed ${pkg}" || safe_exit "Failed to install ${pkg}"
 done
 
+touch "/go/versions/${VERSION}/installer.lock"
+
 echo "Completed installing Go ${VERSION} for ${GOOS}-${GOARCH}. You will need to parse your .bashrc file now manually: "
-echo 
+echo
 echo "  source ~/.bashrc"
-echo 
+echo
