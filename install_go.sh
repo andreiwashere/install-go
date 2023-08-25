@@ -14,7 +14,6 @@ if [ "$#" -lt 1 ] || [ "$#" -gt 3 ]; then
   echo "  $0 1.20.0 darwin amd64         # MacOS amd64"
   echo "  $0 1.20.0 windows              # Windows amd64"
   echo "  $0 1.20.0 windows amd64        # Windows amd64"
-  echo "  $0 1.20.0 js wasm              # JS WebAssembly"
   echo
   echo " (!) at least 1 argument is required, which is the GO VERSION argument"
   echo " (!) if only 2 arguments are provided, then the 2nd argument will be assigned to to GOOS variable"
