@@ -56,7 +56,7 @@ cd /go
 GO_DOWNLOAD_TARBALL=go${VERSION}.${GOOS}-${GOARCH}.tar.gz
 
 # Download Go
-[ ! -f "/go/${GO_DOWNLOAD_TARBALL}" ] && wget "https://go.dev/dl/${GO_DOWNLOAD_TARBALL}" < /dev/null > /dev/null 2>&1 || safe_exit "Downloading https://go.dev/dl/${GO_DOWNLOAD_TARBALL} failed: NOT FOUND"
+[ ! -f "/go/${GO_DOWNLOAD_TARBALL}" ] && wget --no-cache "https://go.dev/dl/${GO_DOWNLOAD_TARBALL}" < /dev/null > /dev/null 2>&1 || safe_exit "Downloading https://go.dev/dl/${GO_DOWNLOAD_TARBALL} failed: NOT FOUND"
 [ -f "/go/${GO_DOWNLOAD_TARBALL}" ] && echo "Downloaded file: ${GO_DOWNLOAD_TARBALL}" || safe_exit "Failed to download ${GO_DOWNLOAD_TARBALL}"
 
 # Create the target directory for the version
