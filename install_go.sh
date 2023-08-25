@@ -141,8 +141,8 @@ fi
 
 declare -A packages=( ["gotop"]="github.com/cjbassi/gotop" ["go-generate-password"]="github.com/m1/go-generate-password/cmd/go-generate-password" ["bombardier"]="github.com/codesenberg/bombardier" )
 for pkg in "${!packages[@]}"; do
-  GOROOT="${GOROOT}" "${GOBIN}/go" install "${packages[$pkg]}@latest"
-  [ -f "${GOBIN}/${pkg}" ] && echo "Installed ${pkg}" || safe_exit "Failed to install ${pkg}"
+  GOROOT="/go/versions/${VERSION}/src" GOOS="${GOOS}" GOARCH="${GOARCH}" "/go/versions/${VERSION}/src/bin/go" install "${packages[$pkg]}@latest"
+  [ -f "/go/versions/${VERSION}/src/bin/${pkg}" ] && echo "Installed ${pkg}" || safe_exit "Failed to install ${pkg}"
 done
 
 echo "Completed installing Go ${VERSION} for ${GOOS}-${GOARCH}. You will need to parse your .bashrc file now manually: "
