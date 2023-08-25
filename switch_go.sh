@@ -37,6 +37,8 @@ switch_version() {
 
     echo "Updated symlinks from \"/go/versions/${current_version}\" to \"/go/versions/${target_version}\"."
 
+    echo "${target_version}" > /go/version
+
     GOROOT="/go/versions/${target_version}/src" "${SYMLINK_DIR}/bin/go" version
 }
 
