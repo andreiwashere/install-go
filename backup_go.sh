@@ -37,6 +37,6 @@ echo "$(date)" > /go/backupgo.lock
 
 ARCHIVE="go.$(hostname).$(date +%Y.%m.%d).tar.gz"
 
-tar -czf "${DIR}/${ARCHIVE}" --exclude="${DIR}" --exclude='/go/root' --exclude='/go/path' --exclude='/go/bin' /go
+tar -czf "${DIR}/${ARCHIVE}" --exclude="${DIR}" --exclude='/go/root' --exclude='/go/path' --exclude='/go/bin' /go < /dev/null > /dev/null 2>&1
 [ -f "${DIR}/${ARCHIVE}" ] && echo "Backup created: ${DIR}/${ARCHIVE}" || safe_exit "Failed to capture archive of ${DIR}/${ARCHIVE}"
 
