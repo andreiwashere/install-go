@@ -62,14 +62,22 @@ safe_exit() {
 deduplicate_backup() {
     local new_backup="$1"
     local backup_dir="$2"
-    local new_hostname=$(basename "$new_backup" | cut -d '.' -f 2)
+    local hostname=$(hostname)
+    local new_hostname_suffix="${hostname}."
+    local new_date=${new_backup#*$new_hostname_suffix}  # Remove prefix up to hostname.
+    new_date=${new_date%%.*.tar.gz}  # Remove suffix from date.
     local new_checksum=$(sha256sum "$new_backup" | awk '{print $1}')
     local last_matching_backup=""
-    
+
     for backup in $(ls -t "$backup_dir"/*.tar.gz); do
-        local existing_hostname=$(basename "$backup" | cut -d '.' -f 2)        
-        [ "$existing_hostname" != "$new_hostname" ] && continue
+        local existing_hostname_suffix="${hostname}."
+        local existing_date=${backup#*$existing_hostname_suffix}  # Remove prefix up to hostname.
+        existing_date=${existing_date%%.*.tar.gz}  # Remove suffix from date.
+        
+        [ "$existing_date" == "$new_date" ] && continue  # Skip if the date matches the new backup
+        
         local existing_checksum=$(sha256sum "$backup" | awk '{print $1}')
+        
         if [ "$existing_checksum" == "$new_checksum" ]; then
             last_matching_backup="$backup"
             break
