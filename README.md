@@ -135,6 +135,19 @@ sudo switchgo list
 
 Since this script installs your ENV vars in your `/etc/profile` and all `/home/*/.bashrc` and `/root/.bashrc` to the `/go/root`, `/go/path`, and `/go/bin` symlinks, we can use the `switchgo` command to update these symlinks and quickly switch between versions of Go.
 
+## Backup Go
+
+**Usage**: `sudo backupgo`
+
+```bash
+wget --no-cache https://raw.githubusercontent.com/andreiwashere/install-go/main/backup_go.sh < /dev/null > /dev/null 2>&1
+[ -f backup_go.sh ] && chmod +x backup_go.sh || echo "Failed to download backup_go.sh"
+[ ! -f /usr/bin/backupgo ] && sudo mv backup_go.sh /usr/bin/backupgo || echo "Already installed!"
+sudo backupgo
+```
+
+This script will create the `/go/backups` directory and exclude itself, plus the symlinks during the backup process. The resuling file will be `/go/backups/go.YYYY.MM.DD.tar.gz` and it will contain everything installed through the `installgo` installations of Go. This can be extremely useful if you need to routinely keep a backup of your `GOROOT`, `GOPATH`, `GOBIN` with respect to time and your build automation expectations. Being able to "go back in time" (no pun intended - or was it?), meaning take your project, recover an old backup, and build the source code from that era of time with that era of packages... genius huh? 
+
 # License
 
 This project is Open Source under the MIT License.
