@@ -25,18 +25,19 @@ if [ ! -d /go ]; then
   echo "You must have Go installed at /go via the installgo package."
   exit 1
 fi
-
+duration=$SECONDS
 [ -f /go/backupgo.lock ] && safe_exit "Already running..."
 
 DIR="/go/backups"
 
 [ ! -d $DIR ] && mkdir -p $DIR
-[ -d $DIR ] && echo "Created directory: ${DIR}" || safe_exit "Failed to create directory ${DIR}"
+[ -d $DIR ] && echo "Checked directory: ${DIR}" || safe_exit "Failed to create directory ${DIR}"
 
 echo "$(date)" > /go/backupgo.lock
 
 ARCHIVE="go.$(hostname).$(date +%Y.%m.%d).tar.gz"
-
+echo "Creating backup: ${DIR}/${ARCHIVE}"
+SECONDS=0
 tar -czf "${DIR}/${ARCHIVE}" --exclude="${DIR}" --exclude='/go/root' --exclude='/go/path' --exclude='/go/bin' /go < /dev/null > /dev/null 2>&1
-[ -f "${DIR}/${ARCHIVE}" ] && echo "Backup created: ${DIR}/${ARCHIVE}" || safe_exit "Failed to capture archive of ${DIR}/${ARCHIVE}"
-
+duration=$SECONDS
+[ -f "${DIR}/${ARCHIVE}" ] && echo "Backup created: ${DIR}/${ARCHIVE} (Completed in ${duration} seconds)" || safe_exit "Failed to capture archive of ${DIR}/${ARCHIVE}"
