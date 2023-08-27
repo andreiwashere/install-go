@@ -36,8 +36,10 @@
 ######################################################################
 
 set -e
-
 [ "${DEBUG}" == "1" ] && set -x
+set -u
+set -o pipefail
+set -v
 
 # Usage: cleanup
 cleanup() {
