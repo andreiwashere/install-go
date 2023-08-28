@@ -1,9 +1,16 @@
+# Why
+
+Why did I create this `install-go` project, and what is it? It's a handy set of tools that make working in Go on Linux much easier to do. The project compiles into 4 binaries that you can execute including `installgo`, `backupgo`, `switchgo` and `manifestdir`. Each of these applications performs their own unique responsibilities, but they are all built with the understanding that this tool manages Golang compilation binaries for active project development. Currently `installgo` runs as `root` as it allows you to easily install many versions of Go on the same system and use `switchgo` to switch between them. Really this thing needs to go in one big CLI application but who has time to do all of that, right? As individual scripts, they work just fine as is... It's not the smartest thing in the world, meaning it won't be able to read from any of your current workspace directories and determine if you are overriding the setting by using a dotfile like `.go_version` or defined in your `go.mod` but that is a good idea.
+
 # Overview
 
 | Script | Link | Info |
 |--------|------|------|
 | `install_go.sh` | [Source Code for install_go.sh](https://raw.githubusercontent.com/andreiwashere/install-go/main/install_go.sh) | Install `/go` on your system |
 | `switch_go.sh` | [Source Code for switch_go.sh](https://raw.githubusercontent.com/andreiwashere/install-go/main/switch_go.sh) | Modifies `/go` active versions |
+| `backup_go.sh` | [Source Code for backup_go.sh](https://raw.githubusercontent.com/andreiwashere/install-go/main/backup_go.sh) | Archives `/go` for CI/CD purposes |
+| `analyze_dir.go` | [Source Code for analyze_dir.go](https://raw.githubusercontent.com/andreiwashere/install-go/main/analyze_dir.go) | Generates manifest metadata analysis for directories |
+| `enable_cron.sh` | [Source Code for enable_cron.sh](https://raw.githubusercontent.com/andreiwashere/install-go/main/enable_cron.sh) | Automate `/go` archives and manifest snapshotting |
 
 This project consists of two programs, `installgo` and `switchgo`. Both of these programs are built upon the following structure:
 
