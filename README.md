@@ -126,9 +126,9 @@ This installs Go to `${HOME}/go/versions/<VERSION>/go` and sets up your ENV to:
 
 | ENV | Value | 
 |-----|-------|
-| `GOROOT` | `/go/root` |
-| `GOPATH` | `/go/path` |
-| `GOBIN` | `/go/bin` |
+| `GOROOT` | `~/go/root` |
+| `GOPATH` | `~/go/path` |
+| `GOBIN` | `~/go/bin` |
 | `GOOS` | argument 2 `GOOS` |
 | `GOARCH` | argument 3 `GOARCH` |
 
