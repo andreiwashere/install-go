@@ -1,7 +1,7 @@
 #!/bin/bash
 
 set -e  # BEST PRACTICES: Exit immediately if a command exits with a non-zero status.
-[ "${DEBUG}" == "1" ] && set -x  # DEVELOPER EXPERIENCE: Enable debug mode, printing each command before it's executed.
+[ "${DEBUG:-0}" == "1" ] && set -x  # DEVELOPER EXPERIENCE: Enable debug mode, printing each command before it's executed.
 set -u  # SECURITY: Exit if an unset variable is used to prevent potential security risks.
 set -C  # SECURITY: Prevent existing files from being overwritten using the '>' operator.
 
@@ -20,7 +20,8 @@ safe_exit() {
 }
 
 igo_usage() {
-  echo "Fatal Error: Missing arguments called VERSION GOOS and GOARCH."
+  local msg="${1:-"No task to perform."}"
+  echo "Fatal Error: ${msg}"
   echo "Usage: "
   echo "       $0 VERSION GOOS GOARCH"
   echo
@@ -34,11 +35,6 @@ igo_usage() {
   echo " (!) if all 3 arguments are provided, GO VERSION, GOOS, and GOARCH will be defined in that order"
   echo
   exit 1
-}
-
-validate_version() {
-  local version="${1}"
-  [[ ! "${version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] && safe_exit "Invalid version format"
 }
 
 set_env_vars() {
@@ -116,21 +112,23 @@ download_script() {
 # Usage: create_backup backup_dir
 create_backup() {
     local directory_to_backup="${1}"
+    local tar_igo
+    local tar_projects
+    local duration
+
     [ ! -d "${directory_to_backup}" ] && safe_exit "No such directory to backup"
     [ -f "${GODIR}/backup.lock" ] && safe_exit "Backup already running"
     date > "${GODIR}/backup.lock"
-    
-    
-    
-    local tar_projects
-    tar_projects="backup.igo.projects.$(hostname).$(date +%Y.%m.%d).tar.gz"
+
+    printf '[PROJECTS] '
+    tar_projects="backup.igo.$(date +%Y.%m.%d).projects.$(hostname).tar.gz"
     SECONDS=0
     tar -czf "${GODIR}/backups/${tar_projects}" "${GODIR}/projects" < /dev/null > /dev/null 2>&1
-    local duration=$SECONDS
-    { [ -f "${GODIR}/backups/${tar_projects}" ] && echo "Backup created: ${dir}/${tar_projects} (Completed in ${duration} seconds)"; } || safe_exit "Failed to capture archive of ${dir}/${tar_projects}"
+    duration=$SECONDS
+    { [ -f "${GODIR}/backups/${tar_projects}" ] && echo "Backup created: ${GODIR}/backups/${tar_projects} (Completed in ${duration} seconds)"; } || safe_exit "Failed to capture archive of ${directory_to_backup}/${tar_projects}"
 
-    local tar_igo
-    tar_igo="backup.igo.installed-golang.$(hostname).$(date +%Y.%m.%d).tar.gz"
+    printf '[GOLANG] '
+    tar_igo="backup.igo.$(date +%Y.%m.%d).golangs.$(hostname).tar.gz"
     SECONDS=0
     tar -czf "${GODIR}/backups/${tar_igo}" --exclude="${GODIR}/manifests" \
                                            --exclude="${GODIR}/root" \
@@ -139,11 +137,9 @@ create_backup() {
                                            --exclude="${GODIR}/backups" \
                                            --exclude "${GODIR}/land" \
                                            --exclude="${GODIR}/install-dir" \
-                                           --exclude="${GODIR}/versions" \
-                                           --exclude="${GODIR}/version" \
                                            --exclude="${GODIR}/projects" \
                                            "${directory_to_backup}" < /dev/null > /dev/null 2>&1
-    local duration=$SECONDS
+    duration=$SECONDS
     { [ -f "${GODIR}/backups/${tar_igo}" ] && echo "Backup created: ${GODIR}/backups/${tar_igo} (Completed in ${duration} seconds)"; } || safe_exit "Failed to capture archive of ${GODIR}/backups/${tar_igo}"
 
 }
@@ -183,35 +179,56 @@ deduplicate_backup() {
 }
 
 list_versions() {
+  [ ! -d "${GODIR}/versions" ] && safe_exit "No Go installed. Use igo to install a version of Go."
   echo "Installed Go versions:"
-  for dir in "${GODIR}"/*; do
+  for dir in "${GODIR}/versions"/*; do
     if [[ -d "${dir}" ]]; then
       version=$(basename "${dir}")
-      ! validate_version "${version}" || continue
-      echo "- ${version} # Execute this: $0 ${version}"
+      current_version=$(cat "${GODIR}/version")
+      VERSION="$(echo -e "${version}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+      [ "${VERSION}" == "" ] && continue
+      [[ ! "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] && continue
+      if [ "${version}" == "${current_version}" ]; then
+        echo "- ${version} * Activated!"
+      else
+        echo "- ${version}"
+      fi
     fi
   done
+  echo
+  echo "Switch versions by using: sgo VERSION"
   echo
 }
 
 switch_version() {
   target_version="$1"
 
-  validate_version "${target_version}" || safe_exit "Invalid version format (eg 1.21.0)"
+  VERSION="$(echo -e "${target_version}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+  [ "${VERSION}" == "" ] && safe_exit "Invalid VERSION provided."
+  [[ ! "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] && safe_exit "Invalid version format"
 
-  if [[ ! -d "${GO_DIR}/versions/${target_version}" ]]; then
+  if [[ ! -d "${GODIR}/versions/${target_version}" ]]; then
       echo "Error: Version ${target_version} not installed."
       exit 1
   fi
 
-  current_version=$(readlink "${GODIR}/root" | awk -F'/' '{print $NF}')
+  current_version=$(cat "${GODIR}/version")
+  if [ "${current_version}" == "" ]; then
+    safe_exit "No ${GODIR}/version file to switch out. Please use igo first."
+  fi
 
-  ln -sf "${GODIR}/versions/${target_version}/go" "${GODIR}/root"
-  ln -sf "${GODIR}/versions/${target_version}/go/bin" "${GODIR}/bin"
-  ln -sf "${GODIR}/versions/${target_version}" "${GODIR}/path"
+  # Create symlink for GOROOT
+  rm -rf "${GOROOT}"
+  rm -rf "${GOBIN}"
+  rm -rf "${GOPATH}"
+
+  ln -s "${GODIR}/versions/${target_version}/go" "${GODIR}/root"
+  ln -s "${GODIR}/versions/${target_version}/go/bin" "${GODIR}/bin"
+  ln -s "${GODIR}/versions/${target_version}" "${GODIR}/path"
 
   echo "Updated symlinks from \"${GODIR}/versions/${current_version}\" to \"${GODIR}/versions/${target_version}\"."
 
+  rm -f "${GODIR}/version"
   echo "${target_version}" > "${GODIR}/version"
 
   GOROOT="${GODIR}/versions/${target_version}/go" "${GODIR}/bin/go" version
@@ -226,26 +243,29 @@ validate_counter() {
   return 0
 }
 
+export COUNTER_FILE="${GODIR}/.db.counter.last_backup"
+
 get_counter() {
   local counter
-  counter=$(<"$COUNTER_FILE")  # Read the first line from the file into the variable
-  validate_counter "$counter" || exit 1  # Validate the counter
-  echo "$counter"  # Output the counter
+  counter=$(<"$COUNTER_FILE")
+  validate_counter "$counter" || exit 1
+  echo "$counter"
 }
 
 counter_plus() {
   local counter
-  counter=$(get_counter)  # Retrieve the current counter value
-  counter=$(( counter + 1 ))  # Increment
-  echo "$counter" > "$COUNTER_FILE"  # Save back to the file
+  counter=$(get_counter)
+  counter=$(( counter + 1 ))
+  echo "$counter" > "$COUNTER_FILE"
 }
 
 counter_minus() {
   local counter
-  counter=$(get_counter)  # Retrieve the current counter value
-  if [ "$counter" -gt 0 ]; then  # Ensure the counter never goes negative
-    counter=$(( counter - 1 ))  # Decrement
-    echo "$counter" > "$COUNTER_FILE"  # Save back to the file
+  counter=$(get_counter)
+  if [ "$counter" -gt 0 ]; then
+    counter=$(( counter - 1 ))
+    echo "$counter" > "$COUNTER_FILE"
   fi
 }
+
 
