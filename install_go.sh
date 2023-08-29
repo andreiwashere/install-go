@@ -1,177 +1,295 @@
-#!/bin/bash
+package main
 
-if [ "$(uname)" != "Linux" ]; then
-  echo "HOLD UP: installgo is only supported on Linux."
-  exit 1
-fi
+import (
+	"compress/gzip"
+	"crypto/sha256"
+	"encoding/hex"
+	"flag"
+	"fmt"
+	"io/fs"
+	"os"
+	"os/signal"
+	"path/filepath"
+	"runtime"
+	"sort"
+	"strconv"
+	"strings"
+	"sync"
+	"syscall"
+)
 
-set -e
-
-cleanup() {
-    [ -f /root/installgo.lock ] && rm -rf /root/installgo.lock || echo "Thank you for using installgo."
+type Resource struct {
+	Path        string
+	Size        int64
+	IsDir       bool
+	IsSym       bool
+	Permissions string
+	Checksum    string
 }
 
-trap cleanup EXIT INT TERM
+var (
+	wg            = sync.WaitGroup{}
+	sigCh         = make(chan os.Signal, 1)
+	resCh         = make(chan Resource, runtime.GOMAXPROCS(runtime.NumCPU()))
+	doneCh        = make(chan struct{}, 1)
+	manifestFile  *os.File
+	manifestDir   = flag.String("manifest-dir", "./manifests", "Directory to store manifests")
+	outputPrefix  *string
+	defaultPrefix = "manifest.txt"
+)
 
-if [ "${DEBUG}" == "1" ]; then
-    set -x
-fi
+func main() {
+	outputPrefix = flag.String("outpre", "", "Prefix for generated files")
+	if outputPrefix == nil || *outputPrefix == "" {
+		outputPrefix = &defaultPrefix
+	}
+	flag.Usage = func() {
+		fmt.Println("Usage: go run main.go [options]")
+		fmt.Println("  options:")
+		fmt.Println("  --manifest-dir: Directory to store manifests (default: ./manifests)")
+		fmt.Println("  --outpre: Prefix for output filenames (default: manifest.txt)")
+		fmt.Println("Example: go run main.go --manifest-dir=./manifests --output-prefix=myfile /path/to/directory")
+	}
+	flag.Parse()
 
-if [ "$(id -u)" -ne 0 ]; then
-  echo "This script must be run as root."
-  exit 1
-fi
+	if len(flag.Args()) == 0 || flag.Arg(0) == "-h" || flag.Arg(0) == "--help" || flag.Arg(0) == "" || *manifestDir == "" || *outputPrefix == "" {
+		flag.Usage()
+		return
+	}
 
-if [ -f /root/installgo.lock ]; then
-  echo "Another installation $(cat /root/installgo.lock) is currently running."
-  exit 1
-fi
+	if _, err := os.Stat(*manifestDir); os.IsNotExist(err) {
+		err := os.Mkdir(*manifestDir, os.ModePerm)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%s%s", "FATAL ERROR: ", err)
+			return
+		}
+	}
 
-if [ "$#" -lt 1 ] || [ "$#" -gt 3 ]; then
-  echo "Fatal Error: Missing arguments called VERSION GOOS and GOARCH."
-  echo "Usage: "
-  echo "       $0 VERSION GOOS GOARCH"
-  echo
-  echo "  $0 1.21.0                      # Linux amd64"
-  echo "  $0 1.21.0 darwin amd64         # MacOS amd64"
-  echo "  $0 1.21.0 windows              # Windows amd64"
-  echo "  $0 1.21.0 windows amd64        # Windows amd64"
-  echo
-  echo " (!) at least 1 argument is required, which is the GO VERSION argument"
-  echo " (!) if only 2 arguments are provided, then the 2nd argument will be assigned to to GOOS variable"
-  echo " (!) if all 3 arguments are provided, GO VERSION, GOOS, and GOARCH will be defined in that order"
-  echo
-  exit 1
-fi
+	signal.Notify(sigCh, syscall.SIGINT)
+	go handleSignal()
 
-VERSION="${1:-1.21.0}"
-export GOOS="${2:-linux}"
-export GOARCH="${3:-amd64}"
+	if _, err := os.Stat(filepath.Join(*manifestDir, *outputPrefix)); err == nil {
+		newName := nextManifest()
+		err := os.Rename(
+			filepath.Join(*manifestDir, *outputPrefix),
+			filepath.Join(*manifestDir, newName),
+		)
+		if err != nil {
+			fmt.Printf("Failed to rename existing manifest: %v\n", err)
+			return
+		}
+	}
 
-echo "${VERSION}" > /root/installgo.lock
+	go writeManifest()
 
-if [ -f "/go/versions/${VERSION}/installer.lock" ]; then
-  echo "Already have Go ${VERSION} installed at /go/versions/${VERSION}"
-  exit 1
-fi
+	home := os.Getenv("HOME")
 
-safe_exit() {
-  local msg="${1:-UnexpectedError}"
-  echo $msg
-  exit 1
+	err := filepath.WalkDir(flag.Arg(0), func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if strings.Contains(path, "/go/backups/") ||
+			strings.Contains(path, "/go/manifests") ||
+			strings.Contains(path, ":\\go\\backups") ||
+			strings.Contains(path, ":\\go\\manifests") ||
+			strings.Contains(path, *manifestDir) ||
+			(home != "" && strings.Contains(path, filepath.Join(home, "go", "backups"))) ||
+			(home != "" && strings.Contains(path, filepath.Join(home, "go", "manifests"))) {
+			return nil
+		}
+
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if err := createResource(path); err != nil {
+				fmt.Printf("Error: %v\n", err)
+			}
+		}()
+		return nil
+	})
+
+	wg.Wait()
+	close(resCh)
+
+	if err != nil {
+		fmt.Printf("Error walking the path %v: %v\n", flag.Arg(0), err)
+	}
+
+	<-doneCh
 }
 
-# Create the Go Directory
-mkdir -p /go
-[ -d /go ] && echo "Created directory: /go" || safe_exit "Failed to create directory /go"
+func writeManifest() {
+	f, err := os.Create(filepath.Join(*manifestDir, *outputPrefix))
+	if err != nil {
+		fmt.Println("Error creating manifest file:", err)
+		return
+	}
 
-# Install the Go Version File
-if [ ! -f /go/version ]; then
-  echo "${VERSION}" > /go/version
-  grep -qxF "${VERSION}" /go/version && echo "Installing Go ${VERSION}..." || safe_exit "Can't install Go ${VERSION}!"
-else
-  echo "Existing active GO installation: $(cat /go/version)"
-  echo "Will install this version of Go next to $(cat /go/version)..."
-fi
+	manifestFile = f
 
-# Go to the Go Directory ¬‿¬
-cd /go
+	var resources []Resource
+	for res := range resCh {
+		resources = append(resources, res)
+	}
 
-GO_DOWNLOAD_TARBALL=go${VERSION}.${GOOS}-${GOARCH}.tar.gz
+	sort.Slice(resources, func(i, j int) bool {
+		return resources[i].Path < resources[j].Path
+	})
 
-# Download Go
-[ ! -f "/go/${GO_DOWNLOAD_TARBALL}" ] && wget --no-cache "https://go.dev/dl/${GO_DOWNLOAD_TARBALL}" < /dev/null > /dev/null 2>&1 || safe_exit "Downloading https://go.dev/dl/${GO_DOWNLOAD_TARBALL} failed: NOT FOUND"
-[ -f "/go/${GO_DOWNLOAD_TARBALL}" ] && echo "Downloaded file: ${GO_DOWNLOAD_TARBALL}" || safe_exit "Failed to download ${GO_DOWNLOAD_TARBALL}"
+	for _, res := range resources {
+		_, err := fmt.Fprintf(f, "%s|%s|%d|%t|%t|%s\n", res.Checksum, res.Permissions, res.Size, res.IsDir, res.IsSym, res.Path)
+		if err != nil {
+			fmt.Println("Error writing to manifest file:", err)
+			return
+		}
+	}
 
-# Create the target directory for the version
-mkdir -p "/go/versions/${VERSION}"
-[ -d "/go/versions/${VERSION}" ] && echo "Prepared directory: /go/versions/${VERSION}" || safe_exit "Failed to create directory /go/versions/${VERSION}"
+	f.Seek(0, 0)
+	defer f.Close()
 
-# Extract the tarball
-tar -C "/go/versions/${VERSION}" -xzf "${GO_DOWNLOAD_TARBALL}"
-[ -d "/go/versions/${VERSION}/go" ] && echo "Extracted ${GO_DOWNLOAD_TARBALL}: /go/versions/${VERSION}/go" || safe_exit "Failed to extract ${GO_DOWNLOAD_TARBALL}"
+	fileBytes, err := os.ReadFile(*outputPrefix)
+	if err != nil {
+		return
+	}
+	hash := sha256.Sum256(fileBytes)
+	checksum := hex.EncodeToString(hash[:])
 
-[ -f "/go/${GO_DOWNLOAD_TARBALL}" ] && rm -f "/go/${GO_DOWNLOAD_TARBALL}"
-[ ! -f "/go/${GO_DOWNLOAD_TARBALL}" ] && echo "Deleted ${GO_DOWNLOAD_TARBALL}" || safe_exit "Failed to delete ${GO_DOWNLOAD_TARBALL}"
+	var c *os.File
+	c, err = os.Create(fmt.Sprintf("%s.checksum", *outputPrefix))
+	if err != nil {
+		fmt.Println("Error creating manifest checksum file: ", err)
+		return
+	}
 
-mv "/go/versions/${VERSION}/go" "/go/versions/${VERSION}/src"
-[ -d "/go/versions/${VERSION}/src" ] && echo "Moved /go/versions/${VERSION}/go -> /go/versions/${VERSION}/src" || safe_exit "Failed to move /go/versions/${VERSION}/go -> /go/versions/${VERSION}/src"
+	fmt.Fprintf(c, "%s", checksum)
+	defer c.Close()
 
-export GOROOT=/go/root
-export GOPATH=/go/path
-export GOBIN=/go/bin
+	// Create the compressed manifest.txt.gz
+	gzFile, err := os.Create(fmt.Sprintf("%s.gz", *outputPrefix))
+	if err != nil {
+		fmt.Println("Error creating compressed manifest file:", err)
+		return
+	}
+	defer gzFile.Close()
 
-[ -L "${GOROOT}" ] || ln -s "/go/versions/${VERSION}/src" "${GOROOT}"
-[ -L "${GOROOT}" ] && echo "Configure GOROOT: ${GOROOT} -> /go/versions/${VERSION}/src" || safe_exit "Failed to create GOROOT symlink"
+	gzWriter := gzip.NewWriter(gzFile)
+	defer gzWriter.Close()
 
-[ -L "${GOBIN}" ] || ln -s "/go/versions/${VERSION}/src/bin" "${GOBIN}"
-[ -L "${GOBIN}" ] && echo "Configure GOBIN: ${GOBIN} -> /go/versions/${VERSION}/src/bin" || safe_exit "Failed to create GOBIN symlink"
+	originalBytes, err := os.ReadFile(*outputPrefix)
+	if err != nil {
+		fmt.Println("Error reading original manifest file:", err)
+		return
+	}
 
-[ -L "${GOPATH}" ] || ln -s "/go/versions/${VERSION}" "${GOPATH}"
-[ -L "${GOPATH}" ] && echo "Configure GOPATH: ${GOPATH} -> /go/versions/${VERSION}" || safe_exit "Failed to create GOPATH symlink"
+	_, err = gzWriter.Write(originalBytes)
+	if err != nil {
+		fmt.Println("Error writing to compressed manifest file:", err)
+		return
+	}
+	gzWriter.Close()
 
-set_env_vars() {
-    local target_file="${1}"
-    declare -A env_vars=(
-        ["GOOS"]=$GOOS
-        ["GOARCH"]=$GOARCH
-        ["GOPATH"]=$GOPATH
-        ["GOROOT"]=$GOROOT
-        ["GOBIN"]=$GOBIN
-    )
-    echo "Patching file: ${target_file}"
+	compressedBytes, err := os.ReadFile(fmt.Sprintf("%s.gz", *outputPrefix))
+	if err != nil {
+		fmt.Println("Error reading compressed manifest file:", err)
+		return
+	}
+	compressedHash := sha256.Sum256(compressedBytes)
+	compressedChecksum := hex.EncodeToString(compressedHash[:])
 
-    for var in "${!env_vars[@]}"; do
-        if ! grep -qxF "export ${var}=${env_vars[$var]}" "$target_file"; then
-            echo "export ${var}=${env_vars[$var]}" >> "$target_file" || safe_exit "Failed to set ${var} in $target_file"
-            echo "Set ${var} in $target_file to ${env_vars[$var]}"
-        fi
-    done
+	compressedChecksumFile, err := os.Create(fmt.Sprintf("%s.gz.checksum", *outputPrefix))
+	if err != nil {
+		fmt.Println("Error creating compressed manifest checksum file: ", err)
+		return
+	}
+	defer compressedChecksumFile.Close()
 
-    if ! grep -qxF "export PATH=\$PATH:${GOBIN}" "$target_file"; then
-        echo "export PATH=\$PATH:${GOBIN}" >> "$target_file" || safe_exit "Failed to append PATH in $target_file"
-        echo "Appended PATH in $target_file"
-    fi
+	fmt.Fprintf(compressedChecksumFile, "%s", compressedChecksum)
 
-    echo "Done patching file: ${target_file}"
+	err = os.Remove(*outputPrefix)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to clean up original manifest file %v with err: %v\n", *outputPrefix, err)
+		return
+	}
+
+	doneCh <- struct{}{}
 }
 
-set_env_vars "/etc/profile"
+func handleSignal() {
+	<-sigCh
+	fmt.Println("Interrupt received. Cleaning up...")
+	if err := os.Rename(*outputPrefix, fmt.Sprintf("%s%s", *outputPrefix, ".partial")); err != nil {
+		fmt.Println("Error renaming file:", err)
+	}
+	close(resCh)
+	manifestFile.Close()
+	os.Exit(1)
+}
 
-for file in /home/*/.bashrc; do
-  echo "Modifying: $file"
-  mv "$file" "$file.bak"
-  cp "$file.bak" "$file"
-  set_env_vars "${file}"
-done
+func nextManifest() string {
+	var maxIndex int
 
-export PATH=$PATH:$GOBIN
+	err := filepath.WalkDir(*manifestDir, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
 
-GO_VERSION_OUTPUT=$(GOROOT="/go/versions/${VERSION}/src" GOOS="${GOOS}" GOARCH="${GOARCH}" "/go/versions/${VERSION}/src/bin/go" version)
+		base := filepath.Base(path)
+		matched, err := filepath.Match(fmt.Sprintf("%s%s%s", "[0-9]*.", *outputPrefix, ".*"), base)
+		if err != nil {
+			return err
+		}
+		if matched {
+			parts := strings.Split(base, ".")
+			if len(parts) > 0 {
+				indexPart := strings.Split(parts[0], "-")[0]
+				index, err := strconv.Atoi(indexPart)
+				if err == nil && index > maxIndex {
+					maxIndex = index
+				}
+			}
+		}
+		return nil
+	})
 
-INSTALLED_VERSION=$(echo "${GO_VERSION_OUTPUT}" | awk '{print $3}' | sed 's/go//')
-INSTALLED_OS=$(echo "${GO_VERSION_OUTPUT}" | awk '{print $4}' | awk -F/ '{print $1}')
-INSTALLED_ARCH=$(echo "${GO_VERSION_OUTPUT}" | awk '{print $4}' | awk -F/ '{print $2}')
+	defaultName := "manifest.txt"
+	if len(*outputPrefix) > 0 && *outputPrefix != defaultName {
+		defaultName = *outputPrefix
+	}
 
-if [[ "${INSTALLED_VERSION}" == "${VERSION}" && "${INSTALLED_OS}" == "${GOOS}" && "${INSTALLED_ARCH}" == "${GOARCH}" ]]; then
-  echo "Sanity check: PASS"
-else
-  echo "Sanity check: FAIL"
-  echo "  Mismatch in installed Go version!"
-  echo "  Expected: go${VERSION} ${GOOS}/${GOARCH}"
-  echo "  Got: go${INSTALLED_VERSION} ${INSTALLED_OS}/${INSTALLED_ARCH}"
-  exit 1
-fi
+	if err != nil {
+		fmt.Printf("Error walking the directory: %v\n", err)
+		return defaultName
+	}
 
-declare -A packages=( ["gotop"]="github.com/cjbassi/gotop" ["go-generate-password"]="github.com/m1/go-generate-password/cmd/go-generate-password" ["bombardier"]="github.com/codesenberg/bombardier" )
-for pkg in "${!packages[@]}"; do
-  GOROOT="/go/versions/${VERSION}/src" GOPATH="/go/versions/${VERSION}" GOBIN="/go/versions/${VERSION}/src/bin" GOOS="${GOOS}" GOARCH="${GOARCH}" "/go/versions/${VERSION}/src/bin/go" install "${packages[$pkg]}@latest"
-  [ -f "/go/versions/${VERSION}/src/bin/${pkg}" ] && echo "Installed ${pkg}" || safe_exit "Failed to install ${pkg}"
-done
+	return fmt.Sprintf("%03d.%s", maxIndex+1, defaultName)
+}
 
-touch "/go/versions/${VERSION}/installer.lock"
+func createResource(path string) error {
+	info, err := os.Stat(path)
+	if err != nil {
+		return err
+	}
+	perm := info.Mode().Perm()
+	var fileBytes []byte
+	if !info.IsDir() {
+		fileBytes, err = os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+	}
 
-echo "Completed installing Go ${VERSION} for ${GOOS}-${GOARCH}. You will need to parse your .bashrc file now manually: "
-echo
-echo "  source ~/.bashrc"
-echo
+	resCh <- Resource{
+		Path:        path,
+		Size:        info.Size(),
+		IsDir:       info.IsDir(),
+		IsSym:       (info.Mode() & os.ModeSymlink) != 0,
+		Permissions: fmt.Sprintf("%o", perm),
+		Checksum: func(fileBytes []byte) string {
+			hash := sha256.Sum256(fileBytes)
+			return hex.EncodeToString(hash[:])
+		}(fileBytes),
+	}
+	fileBytes = []byte{}
+	return nil
+}
