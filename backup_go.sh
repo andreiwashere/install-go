@@ -1,10 +1,10 @@
 #!/bin/bash
 
 set -e  # BEST PRACTICES: Exit immediately if a command exits with a non-zero status.
-[ "${DEBUG}" == "1" ] && set -x  # DEVELOPER EXPERIENCE: Enable debug mode, printing each command before it's executed.
+[ "${DEBUG:-0}" == "1" ] && set -x  # DEVELOPER EXPERIENCE: Enable debug mode, printing each command before it's executed.
 set -u  # SECURITY: Exit if an unset variable is used to prevent potential security risks.
 set -o pipefail  # SECURITY: Ensure that piped commands in this script successfully execute.
-set -v  # DEVELOPER EXPERIENCE: Print shell input lines as they are read, aiding in debugging.
+[ "${VERBOSE:-0}" == "1" ] && set -v  # DEVELOPER EXPERIENCE: Print shell input lines as they are read, aiding in debugging.
 
 GODIR="${HOME:-"/home/$(whoami)"}/go"
 
