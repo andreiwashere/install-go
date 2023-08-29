@@ -1,7 +1,7 @@
 #!/bin/bash
 
 set -e  # BEST PRACTICES: Exit immediately if a command exits with a non-zero status.
-[ "${DEBUG}" == "1" ] && set -x  # DEVELOPER EXPERIENCE: Enable debug mode, printing each command before it's executed.
+[ "${DEBUG:-0}" == "1" ] && set -x  # DEVELOPER EXPERIENCE: Enable debug mode, printing each command before it's executed.
 set -u  # SECURITY: Exit if an unset variable is used to prevent potential security risks.
 set -C  # SECURITY: Prevent existing files from being overwritten using the '>' operator.
 
@@ -23,12 +23,13 @@ trap cleanup_igo EXIT INT TERM # perform cleanup on any exit in script
 [ -f "${GODIR}/installer.lock" ] && safe_exit "Another installation $(cat "${GODIR}/installer.lock") is currently running."
 
 # Ensure proper argument count or show usage details
-[ "$#" -lt 1 ] || [ "$#" -gt 3 ] && igo_usage # igo VERSION [ GOOS ] [ GOARCH ]
+[ "$#" -lt 1 ] || [ "$#" -gt 3 ] && igo_usage "Missing arguments called VERSION GOOS and GOARCH." # igo VERSION [ GOOS ] [ GOARCH ]
 
 # Define the environment
-VERSION="${1}"
-[ "${VERSION}" == "" ] && igo_usage
-validate_version "${VERSION}" || igo_usage
+VERSION="$(echo -e "${1}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+[ "${VERSION}" == "" ] && igo_usage "Invalid VERSION provided."
+echo "Version being checked: ${VERSION}"
+[[ ! "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] && igo_usage "Invalid version format"
 
 # Set up the system for Go
 export GOOS="${2:-linux}"
@@ -59,11 +60,14 @@ GO_DOWNLOAD_TARBALL="go${VERSION}.${GOOS}-${GOARCH}.tar.gz"
 [ -d "${GODIR}/downloads" ] || mkdir -p "${GODIR}/downloads" || safe_exit "Unable to create ${GODIR}/downloads directory"
 
 # Download Go archive
-{ [ ! -f "${GODIR}/downloads/${GO_DOWNLOAD_TARBALL}" ] && wget --https-only --secure-protocol=auto --no-cache -O "${GODIR}/downloads/${GO_DOWNLOAD_TARBALL}" "https://go.dev/dl/${GO_DOWNLOAD_TARBALL}" < /dev/null > /dev/null 2>&1; } || safe_exit "Downloading https://go.dev/dl/${GO_DOWNLOAD_TARBALL} failed: NOT FOUND"
+if [ ! -f "${GODIR}/downloads/${GO_DOWNLOAD_TARBALL}" ]; then
+  wget --https-only --secure-protocol=auto --no-cache -O "${GODIR}/downloads/${GO_DOWNLOAD_TARBALL}" "https://go.dev/dl/${GO_DOWNLOAD_TARBALL}" < /dev/null > /dev/null 2>&1 || safe_exit "Downloading https://go.dev/dl/${GO_DOWNLOAD_TARBALL} failed: NOT FOUND"
+fi
 { [ -f "${GODIR}/downloads/${GO_DOWNLOAD_TARBALL}" ] && echo "Downloaded file: ${GO_DOWNLOAD_TARBALL}"; } || safe_exit "Failed to download ${GO_DOWNLOAD_TARBALL}"
 
 # Create the target directory for the version mkdir -p "${GODIR}/versions/${VERSION}"
-{ [ -d "${GODIR}/versions/${VERSION}" ] && echo "Prepared directory: ${GODIR}/versions/${VERSION}"; } || safe_exit "Failed to create directory ${GODIR}/versions/${VERSION}"
+[ ! -d "${GODIR}/versions/${VERSION}" ] && mkdir -p "${GODIR}/versions/${VERSION}"
+[ -d "${GODIR}/versions/${VERSION}" ] || safe_exit "Failed to create the ${GODIR}/versions/${VERSION} directory."
 
 # Extract the tarball
 tar -C "${GODIR}/versions/${VERSION}" -xzf "${GODIR}/downloads/${GO_DOWNLOAD_TARBALL}"
@@ -112,7 +116,7 @@ fi
 
 declare -A packages=( ["gotop"]="github.com/cjbassi/gotop" ["go-generate-password"]="github.com/m1/go-generate-password/cmd/go-generate-password" ["bombardier"]="github.com/codesenberg/bombardier" )
 for pkg in "${!packages[@]}"; do
-  GOROOT="${GODIR}/versions/${VERSION}/go" GOPATH="${GODIR}/versions/${VERSION}" GOBIN="/go/versions/${VERSION}/go/bin" GOOS="${GOOS}" GOARCH="${GOARCH}" "${GODIR}/versions/${VERSION}/go/bin/go" install "${packages[$pkg]}@latest"
+  GOROOT="${GODIR}/versions/${VERSION}/go" GOPATH="${GODIR}/versions/${VERSION}" GOBIN="${GODIR}/versions/${VERSION}/go/bin" GOOS="${GOOS}" GOARCH="${GOARCH}" "${GODIR}/versions/${VERSION}/go/bin/go" install "${packages[$pkg]}@latest"
   { [ -f "${GODIR}/versions/${VERSION}/go/bin/${pkg}" ] && echo "Installed ${pkg}"; } || safe_exit "Failed to install ${pkg}"
 done
 
