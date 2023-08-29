@@ -1,46 +1,17 @@
 #!/bin/bash
 
-if [ "$(id -u)" -ne 0 ]; then
-  echo "This script must be run as root."
-  exit 1
-fi
+set -e  # BEST PRACTICES: Exit immediately if a command exits with a non-zero status.
+[ "${DEBUG}" == "1" ] && set -x  # DEVELOPER EXPERIENCE: Enable debug mode, printing each command before it's executed.
+set -u  # SECURITY: Exit if an unset variable is used to prevent potential security risks.
+set -C  # SECURITY: Prevent existing files from being overwritten using the '>' operator.
 
-GO_DIR="/go/versions"
-SYMLINK_DIR="/go"
+GODIR="${HOME:-"/home/$(whoami)"}/go" # where all things go go
 
-list_versions() {
-    echo "Installed Go versions:"
-    for dir in "${GO_DIR}"/*; do
-        if [[ -d "${dir}" ]]; then
-            version=$(basename "${dir}")
-            echo "- ${version} # Execute this: sudo $0 ${version}"
-        fi
-    done
-    echo
-}
+# Create the Go Directory
+[ -d "${GODIR}" ] || mkdir -p "${GODIR}" || { echo "Failed to mkdir the GODIR ${GODIR}"; exit 1; }
 
-switch_version() {
-    target_version="$1"
-
-    if [[ ! -d "${GO_DIR}/${target_version}" ]]; then
-        echo "Error: Version ${target_version} not installed."
-        exit 1
-    fi
-
-    current_version=$(readlink "${SYMLINK_DIR}/root" | awk -F'/' '{print $NF}')
-
-    rm -f "${SYMLINK_DIR}/root" "${SYMLINK_DIR}/bin" "${SYMLINK_DIR}/path"
-
-    ln -s "${GO_DIR}/${target_version}/src" "${SYMLINK_DIR}/root"
-    ln -s "${GO_DIR}/${target_version}/src/bin" "${SYMLINK_DIR}/bin"
-    ln -s "${GO_DIR}/${target_version}" "${SYMLINK_DIR}/path"
-
-    echo "Updated symlinks from \"/go/versions/${current_version}\" to \"/go/versions/${target_version}\"."
-
-    echo "${target_version}" > /go/version
-
-    GOROOT="/go/versions/${target_version}/src" "${SYMLINK_DIR}/bin/go" version
-}
+# Load the functions
+source "${GODIR}/scripts/functions.sh"
 
 case "$1" in
     list)
@@ -51,7 +22,7 @@ case "$1" in
         ;;
     *)
         echo "Usage:"
-        echo "   sudo $0 list               - List installed Go versions"
-        echo "   sudo $0 <version>          - Switch to the specified Go version"
+        echo "   $0 list               - List installed Go versions"
+        echo "   $0 <version>          - Switch to the specified Go version"
         ;;
 esac
