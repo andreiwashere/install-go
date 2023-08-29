@@ -26,3 +26,4 @@ case "$1" in
         echo "   $0 <version>          - Switch to the specified Go version"
         ;;
 esac
+
