@@ -81,17 +81,17 @@ func main() {
 	}
 
 	go writeManifest()
-	
+
 	home := os.Getenv("HOME")
-	
+
 	err := filepath.WalkDir(flag.Arg(0), func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
 
-		if strings.Contains(path, "/go/backups/") || 
+		if strings.Contains(path, "/go/backups/") ||
 			strings.Contains(path, "/go/manifests") ||
-			strings.Contains(path,":\\go\\backups") ||
+			strings.Contains(path, ":\\go\\backups") ||
 			strings.Contains(path, ":\\go\\manifests") ||
 			strings.Contains(path, *manifestDir) ||
 			(home != "" && strings.Contains(path, filepath.Join(home, "go", "backups"))) ||
