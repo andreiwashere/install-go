@@ -22,6 +22,7 @@ $HOME/go/bin -> $HOME/go/version/<version>/go/bin
 $HOME/go/versions
 $HOME/go/versions/<version>
 $HOME/go/versions/<version>/go
+$HOME/go/versions/<version>/installer.lock
 $HOME/go/versions/<version>/pkg
 ```
 
