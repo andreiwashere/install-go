@@ -28,7 +28,7 @@ download_script() {
     if [ -f "${GODIR}/install-go/${file}" ]; then
       [ -L "${pkg}" ] || ln -s "${GODIR}/install-go/${file}" "${pkg}"
     else
-      wget --https-only --secure-protocol=auto --no-cache -O "$pkg" "$src" < /dev/null > /dev/null 2>&1 || echo "Downloading ${src}: FAILED, using local if available."
+      wget --https-only --secure-protocol=auto --no-cache -O "${pkg}" "${src}" || echo "Downloading ${src}: FAILED, using local if available."
     fi
   else
     echo "Already have $(basename "${pkg}") installed at ${pkg}!"
