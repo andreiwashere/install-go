@@ -6,23 +6,23 @@ The project `install-go` or `igo` is a set of helper scripts written in Bash and
 
 | Script | Link | Info |
 |--------|------|------|
-| `install_go.sh` | [Source Code for install_go.sh](https://raw.githubusercontent.com/andreiwashere/install-go/main/install_go.sh) | Install `/go` on your system |
-| `switch_go.sh` | [Source Code for switch_go.sh](https://raw.githubusercontent.com/andreiwashere/install-go/main/switch_go.sh) | Modifies `/go` active versions |
-| `backup_go.sh` | [Source Code for backup_go.sh](https://raw.githubusercontent.com/andreiwashere/install-go/main/backup_go.sh) | Archives `/go` for CI/CD purposes |
+| `install_go.sh` | [Source Code for install_go.sh](https://raw.githubusercontent.com/andreiwashere/install-go/main/install_go.sh) | Install `$HOME/go` on your system |
+| `switch_go.sh` | [Source Code for switch_go.sh](https://raw.githubusercontent.com/andreiwashere/install-go/main/switch_go.sh) | Modifies `$HOME/go` active versions |
+| `backup_go.sh` | [Source Code for backup_go.sh](https://raw.githubusercontent.com/andreiwashere/install-go/main/backup_go.sh) | Archives `$HOME/go` for CI/CD purposes |
 | `analyze_dir.go` | [Source Code for analyze_dir.go](https://raw.githubusercontent.com/andreiwashere/install-go/main/analyze_dir.go) | Generates manifest metadata analysis for directories |
 
 This project consists of two programs, `installgo` and `switchgo`. Both of these programs are built upon the following structure:
 
 ```bash
-~/go
-~/go/version
-~/go/root -> /go/versions/<version>/go
-~/go/path -> /go/versions/<version>
-~/go/bin -> /go/version/<version>/src/bin
-~/go/versions
-~/go/versions/<version>
-~/go/versions/<version>/go
-~/go/versions/<version>/pkg
+$HOME/go
+$HOME/go/version
+$HOME/go/root -> $HOME/go/versions/<version>/go
+$HOME/go/path -> $HOME/go/versions/<version>
+$HOME/go/bin -> $HOME/go/version/<version>/src/bin
+$HOME/go/versions
+$HOME/go/versions/<version>
+$HOME/go/versions/<version>/go
+$HOME/go/versions/<version>/pkg
 ```
 
 `igo` or **Install Go** will ensure this basic directory structure exists on your Linux system. 
@@ -143,7 +143,7 @@ wget --no-cache https://raw.githubusercontent.com/andreiwashere/install-go/main/
 sgo list
 ```
 
-This updates the symlinks inside of `!/go` for `GOBIN`, `GOPATH`, and `GOROOT` automatically and supports `~/.bashrc` and `~/.zshrc` shells for export control of the environment variables.
+This updates the symlinks inside of `$HOME/go` for `GOBIN`, `GOPATH`, and `GOROOT` automatically and supports `$HOME/.bashrc` and `$HOME/.zshrc` shells for export control of the environment variables.
 
 ### `bgo`
 
@@ -155,9 +155,9 @@ wget --no-cache https://raw.githubusercontent.com/andreiwashere/install-go/main/
 [ ! -f /usr/bin/bgo ] && sudo mv backup_go.sh /usr/bin/bgo || echo "Already installed!"
 ```
 
-This script will create a backup of the `~/go` directory and save the backup inside of `~/go/backups`. 
+This script will create a backup of the `$HOME/go` directory and save the backup inside of `$HOME/go/backups`. 
 
-**NOTE**: _The backups stored inside `~/go/backups` will be omitted from future `bgo` backups created._
+**NOTE**: _The backups stored inside `$HOME/go/backups` will be omitted from future `bgo` backups created._
 
 # License
 
