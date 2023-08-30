@@ -103,6 +103,12 @@ sgo 1.21.0
 ## All In One
 
 ```bash
+sh <(curl https://raw.githubusercontent.com/andreiwashere/install-go/main/install.sh -L)
+```
+
+OR
+
+```bash
 wget --no-cache https://raw.githubusercontent.com/andreiwashere/install-go/main/install.sh < /dev/null > /dev/null 2>&1
 [ -f install.sh ] && chmod +x install.sh || echo "Failed to download install.sh"
 ./install.sh
@@ -117,8 +123,7 @@ wget --no-cache https://raw.githubusercontent.com/andreiwashere/install-go/main/
 ```bash
 wget --no-cache https://raw.githubusercontent.com/andreiwashere/install-go/main/install_go.sh < /dev/null > /dev/null 2>&1
 [ -f install_go.sh ] && chmod +x install_go.sh || echo "Failed to download install_go.sh"
-[ ! -f /usr/bin/igo ] && sudo mv install_go.sh /usr/bin/igo || echo "Already installed!"
-source ~/.bashrc
+[ -f "${HOME}/bin/igo" ] && echo "Already installed!" || { mkdir -p "${HOME}/bin" && [ -d "${HOME}/bin" ] && mv install_go.sh "${HOME}/bin/igo" && [ -f "${HOME}/bin/igo" ] && echo "igo installed at ${HOME}/bin/igo" || echo "Installation of igo failed"; }
 igo
 ```
 
@@ -139,7 +144,7 @@ This installs Go to `${HOME}/go/versions/<VERSION>/go` and sets up your ENV to:
 ```bash
 wget --no-cache https://raw.githubusercontent.com/andreiwashere/install-go/main/switch_go.sh < /dev/null > /dev/null 2>&1
 [ -f switch_go.sh ] && chmod +x switch_go.sh || echo "Failed to download switch_go.sh"
-[ ! -f /usr/bin/sgo ] && sudo mv switch_go.sh /usr/bin/sgo || echo "Already installed!"
+[ -f "${HOME}/bin/sgo" ] && echo "Already installed!" || { mkdir -p "${HOME}/bin" && [ -d "${HOME}/bin" ] && mv switch_go.sh "${HOME}/bin/sgo" && [ -f "${HOME}/bin/sgo" ] && echo "sgo installed at ${HOME}/bin/sgo" || echo "Installation of sgo failed"; }
 sgo list
 ```
 
@@ -152,7 +157,8 @@ This updates the symlinks inside of `$HOME/go` for `GOBIN`, `GOPATH`, and `GOROO
 ```bash
 wget --no-cache https://raw.githubusercontent.com/andreiwashere/install-go/main/backup_go.sh < /dev/null > /dev/null 2>&1
 [ -f backup_go.sh ] && chmod +x backup_go.sh || echo "Failed to download backup_go.sh"
-[ ! -f /usr/bin/bgo ] && sudo mv backup_go.sh /usr/bin/bgo || echo "Already installed!"
+[ -f "${HOME}/bin/bgo" ] && echo "Already installed!" || { mkdir -p "${HOME}/bin" && [ -d "${HOME}/bin" ] && mv backup_go.sh "${HOME}/bin/bgo" && [ -f "${HOME}/bin/igo" ] && echo "bgo installed at ${HOME}/bin/bgo" || echo "Installation of bgo failed"; }
+
 ```
 
 This script will create a backup of the `$HOME/go` directory and save the backup inside of `$HOME/go/backups`. 
