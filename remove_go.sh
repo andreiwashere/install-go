@@ -10,23 +10,35 @@ GODIR="${HOME:-"/home/$(whoami)"}/go"
 
 source "${GODIR}/scripts/functions.sh"
 
+# Safely exit script
+trap cleanup_rgo EXIT INT TERM # perform cleanup on any exit in script
+
+# Define the environment
+VERSION="$(echo -e "${1}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+[ "${VERSION}" == "" ] && rgo_usage "Invalid VERSION provided."
+echo "Version being checked: ${VERSION}"
+[[ ! "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] && rgo_usage "Invalid version format"
+
+# Prevent concurrent rgo usage check
+[ -f "${GODIR}/uninstaller.lock" ] && safe_exit "Another rgo $(cat "${GODIR}/uninstaller.lock") is currently running."
+
+# Lock the installer to the version specified
+echo "${VERSION}" > "${GODIR}/uninstaller.lock" # prevent concurrent rgo usage locker
+
 case "$1" in
   list)
     list_versions
     ;;
   help)
-    echo "Usage:"
-    echo "   $0 help               - Show this help message"
-    echo "   $0 <version>          - Remove the specified Go version"
+    rgo_usage
     exit 0
     ;;
   "")
-    echo "Usage:"
-    echo "   $0 help               - Show this help message"
-    echo "   $0 <version>          - Remove the specified Go version"
+    rgo_usage
     exit 1
     ;;
   *)
     remove_version "$1"
     ;;
 esac
+
