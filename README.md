@@ -27,7 +27,7 @@ $HOME/go/versions/<version>/pkg
 
 `igo` or **Install Go** will ensure this basic directory structure exists on your Linux system. 
 
-> This script uses Bash 4 syntax, and will not work with the built-in bash provided on MacOS. You will be required to upgrade your Bash prior to using this script on MacOS. While its unconventional to put a directory in the root volume of the system, and the root user is typically not used, this script may be modified to work without sudo, and instead just do a local install instead.
+> This script uses Bash 4 syntax, and will not work with the built-in bash provided on MacOS. You will be required to upgrade your Bash prior to using this script on MacOS. 
 
 `sgo` or **Switch Go** on the other hand is the script that will let you manage multiple installations of Go on the same host. For example, lets say that you're working on a project, and its taking several months to a year or so, and Go keeps getting upgraded... well, with `switchgo` and `installgo` you can keep your system up to date. Let's use this example: 
 
