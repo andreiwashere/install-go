@@ -18,7 +18,7 @@ $HOME/go
 $HOME/go/version
 $HOME/go/root -> $HOME/go/versions/<version>/go
 $HOME/go/path -> $HOME/go/versions/<version>
-$HOME/go/bin -> $HOME/go/version/<version>/src/bin
+$HOME/go/bin -> $HOME/go/version/<version>/go/bin
 $HOME/go/versions
 $HOME/go/versions/<version>
 $HOME/go/versions/<version>/go
