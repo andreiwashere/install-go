@@ -17,7 +17,7 @@ safe_exit() {
 GODIR="${HOME:-"/home/$(whoami)"}/go" # where all things go go
 
 # Create the Go Directory
-mkdir -p "${GODIR}/backups" "${GODIR}/manifests" "${GODIR}/scripts"
+mkdir -p "${GODIR}/backups" "${GODIR}/manifests" "${GODIR}/scripts" "${GODIR}/projects"
 
 download_script() {
   local src="${1}"
@@ -64,11 +64,20 @@ esac
 
 if [ -f "$rcfile" ]; then
   grep -qF "export PATH=${GODIR}/scripts" "$rcfile" || echo "export PATH=${GODIR}/scripts:\$PATH" >> "$rcfile"
-  set +u
-  # shellcheck disable=SC1090
-  source "${rcfile}"
-  set -u
-  echo "Sourced $rcfile."
+  exec "$SHELL"
+  echo "Thank you for installing igo. We've reloaded your shell so you can begin using this immediately."
+  echo 
+  echo "   sgo list              - List installed versions of Go"
+  echo "   igo                   - Display the help menu for igo"
+  echo "   igo 1.21.0            - Install Go 1.21.0 into \${HOME}/go/versions/1.21.0"
+  echo "   igo 1.20.7            - Install Go 1.20.7 into \${HOME}/go/versions/1.20.7"
+  echo "   sgo list              - List installed versions of Go"
+  echo "   sgo 1.20.7            - Activate Go 1.20.7"
+  echo "   sgo 1.21.0            - Activate Go 1.21.0"
+  echo "   bgo                   - Create backup of \${HOME}/go"
+  echo 
+  echo "Thank you for installing github.com/andreiwashere/install-go!"
+  exit 0
 else
   echo "$rcfile not found."
 fi
