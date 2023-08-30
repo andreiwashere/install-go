@@ -41,6 +41,14 @@ igo_usage() {
   exit 1
 }
 
+rgo_usage(){
+  local msg="${1:-"BLANK"}"
+  [ "${msg}"  != "BLANK" ] && echo "Fatal Error: ${msg}"
+  echo "Usage:"
+  echo "   $0 help               - Show this help message"
+  echo "   $0 <version>          - Remove the specified Go version"
+}
+
 set_env_vars() {
     local target_file="${1}"
     declare -A env_vars=(
@@ -73,20 +81,14 @@ source_shell_config() {
   case "$current_shell" in
     bash)
       if [ -f "${HOME}/.bashrc" ]; then
-        set +u
-        source "${HOME}/.bashrc"
-        set -u
-        echo "Sourced ${HOME}/.bashrc."
+        exec "$SHELL"
       else
         echo "${HOME}/.bashrc not found."
       fi
       ;;
     zsh)
       if [ -f "${HOME}/.zshrc" ]; then
-        set +u
-        source "${HOME}/.zshrc"
-        set -u
-        echo "Sourced ${HOME}/.zshrc."
+        exec "$SHELL"
       else
         echo "${HOME}/.zshrc not found."
       fi
@@ -272,7 +274,6 @@ counter_minus() {
   fi
 }
 
-
 ensure_version_installed() {
   target_version="$1"
 
@@ -324,6 +325,4 @@ remove_version() {
 
   echo "Removed Go version ${target_version}."
 }
-
-
 
