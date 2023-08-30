@@ -40,6 +40,13 @@ download_script "https://raw.githubusercontent.com/andreiwashere/install-go/main
 download_script "https://raw.githubusercontent.com/andreiwashere/install-go/main/backup_go.sh" "${GODIR}/scripts/bgo" "backup_go.sh"
 download_script "https://raw.githubusercontent.com/andreiwashere/install-go/main/functions.sh" "${GODIR}/scripts/functions.sh" "functions.sh"
 
+for script in igo sgo bgo; do
+  script_path="${GODIR}/scripts/${script}"
+  if [ -f "${script_path}" ] && [ ! -L "${script_path}" ]; then
+    chmod +x "${script_path}"
+  fi
+done
+
 current_shell=$(basename "${SHELL:-"/bin/bash"}")
 
 case "$current_shell" in
