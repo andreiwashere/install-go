@@ -13,6 +13,10 @@ cleanup_bgo() {
     [ -f "${GODIR}/backup.lock" ] && rm -rf "${GODIR}/backup.lock" || echo "Thank you for using bgo."
 }
 
+cleanup_rgo() {
+    [ -f "${GODIR}/uninstaller.lock" ] && rm -rf "${GODIR}/uninstaller.lock" || echo "Thank you for using rgo."
+}
+
 safe_exit() {
   local msg="${1:-UnexpectedError}"
   echo "${msg}"
@@ -267,5 +271,59 @@ counter_minus() {
     echo "$counter" > "$COUNTER_FILE"
   fi
 }
+
+
+ensure_version_installed() {
+  target_version="$1"
+
+  # Validate version string
+  VERSION="$(echo -e "${target_version}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+  [ "${VERSION}" == "" ] && safe_exit "Invalid VERSION provided."
+  [[ ! "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] && safe_exit "Invalid version format"
+  [[ ! -d "${GODIR}/versions/${target_version}" ]] && safe_exit "Error: Version ${target_version} not installed."
+}
+
+remove_sticky_bits() {
+  target_version="$1"
+  chmod -R a-s "${GODIR}/versions/${target_version}"
+}
+
+remove_immutable_attribute() {
+  target_version="$1"
+  chattr -R -i "${GODIR}/versions/${target_version}" || echo "Warning: chattr failed, please ensure you have the required permissions."
+}
+
+check_mounted_directory() {
+  target_version="$1"
+  mountpoint -q "${GODIR}/versions/${target_version}" && safe_exit "Error: ${GODIR}/versions/${target_version} is a mounted directory."
+}
+
+remove_symlinks() {
+  [ -L "${GODIR}/root" ] && rm -rf "${GODIR}/root"
+  [ -L "${GODIR}/bin" ] && rm -rf "${GODIR:?}/bin"
+  [ -L "${GODIR}/path" ] && rm -rf "${GODIR}/path"
+}
+
+remove_version() {
+  target_version="$1"
+  ensure_version_installed "${target_version}"
+
+  # Remove any special permissions and attributes
+  remove_sticky_bits "${target_version}"
+  remove_immutable_attribute "${target_version}"
+  check_mounted_directory "${target_version}"
+
+  # If this version is currently active, remove symlinks
+  current_version=$(cat "${GODIR}/version")
+  if [ "${current_version}" == "${target_version}" ]; then
+    remove_symlinks
+  fi
+
+  # Now, remove the version directory
+  rm -rf "${GODIR}/versions/${target_version}"
+
+  echo "Removed Go version ${target_version}."
+}
+
 
 
