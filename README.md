@@ -186,7 +186,7 @@ wget --no-cache https://raw.githubusercontent.com/andreiwashere/install-go/main/
 
 ```bash
 wget --no-cache https://raw.githubusercontent.com/andreiwashere/install-go/main/remove_go.sh < /dev/null > /dev/null 2>&1
-[ -f backup_go.sh ] && chmod +x remove_go.sh || echo "Failed to download remove_go.sh"
+[ -f remove_go.sh ] && chmod +x remove_go.sh || echo "Failed to download remove_go.sh"
 [ -f "${HOME}/bin/rgo" ] && echo "Already installed!" || { mkdir -p "${HOME}/bin" && [ -d "${HOME}/bin" ] && mv remove_go.sh "${HOME}/bin/rgo" && [ -f "${HOME}/bin/rgo" ] && echo "rgo installed at ${HOME}/bin/rgo" || echo "Installation of rgo failed"; }
 ```
 
