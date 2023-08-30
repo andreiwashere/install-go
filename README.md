@@ -8,10 +8,21 @@ The project `install-go` or `igo` is a set of helper scripts written in Bash and
 |--------|------|------|
 | `install_go.sh` | [Source Code for install_go.sh](https://raw.githubusercontent.com/andreiwashere/install-go/main/install_go.sh) | Install `$HOME/go` on your system |
 | `switch_go.sh` | [Source Code for switch_go.sh](https://raw.githubusercontent.com/andreiwashere/install-go/main/switch_go.sh) | Modifies `$HOME/go` active versions |
+| `remove_go.sh` | [Source Code for remove_go.sh](https://raw.githubusercontent.com/andreiwashere/install-go/main/remove_go.sh) | Removes `$HOME/go/<version>` from your system |
 | `backup_go.sh` | [Source Code for backup_go.sh](https://raw.githubusercontent.com/andreiwashere/install-go/main/backup_go.sh) | Archives `$HOME/go` for CI/CD purposes |
 | `analyze_dir.go` | [Source Code for analyze_dir.go](https://raw.githubusercontent.com/andreiwashere/install-go/main/analyze_dir.go) | Generates manifest metadata analysis for directories |
 
-This project consists of two programs, `installgo` and `switchgo`. Both of these programs are built upon the following structure:
+This project consists of 5 programs, `installgo` aka `igo`, `switchgo` aka `sgo`. 
+
+| Name | Binary | Usage |
+|------|--------|-------|
+| **Installer** | `igo` | `igo VERSION [ GOOS ] [ GOARCH ]` |
+| **Switcher** | `sgo` | `sgo list | VERSION` |
+| **Backups** | `bgo` | `bgo` |
+| **Uninstaller** | `rgo` | `rgo list | VERSION` |
+| **Manifester** | `manifestdir` | `manifestdir --manifest-dir="${HOME}/go/manifests" --outpre="igo.txt" "${HOME}/go"` |
+
+All of of these programs are built upon the following structure:
 
 ```bash
 $HOME/go
@@ -99,6 +110,14 @@ To switch from Go 1.20.5 to Go 1.21.0:
 sgo 1.21.0
  ```
 
+## `rgo` Examples
+
+To uninstall Go 1.17.12 from your system:
+
+```bash
+rgo 1.17.12
+```
+
 # Installation 
 
 ## All In One
@@ -158,8 +177,17 @@ This updates the symlinks inside of `$HOME/go` for `GOBIN`, `GOPATH`, and `GOROO
 ```bash
 wget --no-cache https://raw.githubusercontent.com/andreiwashere/install-go/main/backup_go.sh < /dev/null > /dev/null 2>&1
 [ -f backup_go.sh ] && chmod +x backup_go.sh || echo "Failed to download backup_go.sh"
-[ -f "${HOME}/bin/bgo" ] && echo "Already installed!" || { mkdir -p "${HOME}/bin" && [ -d "${HOME}/bin" ] && mv backup_go.sh "${HOME}/bin/bgo" && [ -f "${HOME}/bin/igo" ] && echo "bgo installed at ${HOME}/bin/bgo" || echo "Installation of bgo failed"; }
+[ -f "${HOME}/bin/bgo" ] && echo "Already installed!" || { mkdir -p "${HOME}/bin" && [ -d "${HOME}/bin" ] && mv backup_go.sh "${HOME}/bin/bgo" && [ -f "${HOME}/bin/bgo" ] && echo "bgo installed at ${HOME}/bin/bgo" || echo "Installation of bgo failed"; }
+```
 
+## `rgo`
+
+**Usage**: `rgo [ list | VERSION ]`
+
+```bash
+wget --no-cache https://raw.githubusercontent.com/andreiwashere/install-go/main/remove_go.sh < /dev/null > /dev/null 2>&1
+[ -f backup_go.sh ] && chmod +x remove_go.sh || echo "Failed to download remove_go.sh"
+[ -f "${HOME}/bin/rgo" ] && echo "Already installed!" || { mkdir -p "${HOME}/bin" && [ -d "${HOME}/bin" ] && mv remove_go.sh "${HOME}/bin/rgo" && [ -f "${HOME}/bin/rgo" ] && echo "rgo installed at ${HOME}/bin/rgo" || echo "Installation of rgo failed"; }
 ```
 
 This script will create a backup of the `$HOME/go` directory and save the backup inside of `$HOME/go/backups`. 
