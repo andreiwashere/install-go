@@ -29,10 +29,10 @@ igo_usage() {
   echo "Usage: "
   echo "       $0 VERSION GOOS GOARCH"
   echo
-  echo "  $0 1.21.0                      # Linux amd64"
-  echo "  $0 1.21.0 darwin amd64         # MacOS amd64"
-  echo "  $0 1.21.0 windows              # Windows amd64"
-  echo "  $0 1.21.0 windows amd64        # Windows amd64"
+  echo "  $(basename "$0") 1.21.0                      # Linux amd64"
+  echo "  $(basename "$0") 1.21.0 darwin amd64         # MacOS amd64"
+  echo "  $(basename "$0") 1.21.0 windows              # Windows amd64"
+  echo "  $(basename "$0") 1.21.0 windows amd64        # Windows amd64"
   echo
   echo " (!) at least 1 argument is required, which is the GO VERSION argument"
   echo " (!) if only 2 arguments are provided, then the 2nd argument will be assigned to to GOOS variable"
@@ -45,8 +45,9 @@ rgo_usage(){
   local msg="${1:-"BLANK"}"
   [ "${msg}"  != "BLANK" ] && echo "Fatal Error: ${msg}"
   echo "Usage:"
-  echo "   $0 help               - Show this help message"
-  echo "   $0 <version>          - Remove the specified Go version"
+  echo "   $(basename "$0") help               - Show this help message"
+  echo "   $(basename "$0") list               - Show installed versions of Go that can be uninstalled"
+  echo "   $(basename "$0") <version>          - Remove the specified Go version"
 }
 
 set_env_vars() {
@@ -190,11 +191,12 @@ list_versions() {
   for dir in "${GODIR}/versions"/*; do
     if [[ -d "${dir}" ]]; then
       version=$(basename "${dir}")
-      current_version=$(cat "${GODIR}/version")
+      local current_version
+      [ -f "${GODIR}/version" ] && current_version=$(cat "${GODIR}/version")
       VERSION="$(echo -e "${version}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
       [ "${VERSION}" == "" ] && continue
       [[ ! "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] && continue
-      if [ "${version}" == "${current_version}" ]; then
+      if [ -f "${GODIR}/version" ] && [ "${version}" == "${current_version}" ]; then
         echo "- ${version} * Activated!"
       else
         echo "- ${version}"
@@ -217,9 +219,9 @@ switch_version() {
       echo "Error: Version ${target_version} not installed."
       exit 1
   fi
-
-  current_version=$(cat "${GODIR}/version")
-  if [ "${current_version}" == "" ]; then
+  local current_version=""
+  [ -f "${GODIR}/version" ] && current_version=$(cat "${GODIR}/version")
+  if [ -f "${GODIR}/version" ] && [ "${current_version}" == "" ]; then
     safe_exit "No ${GODIR}/version file to switch out. Please use igo first."
   fi
 
@@ -276,53 +278,63 @@ counter_minus() {
 
 ensure_version_installed() {
   target_version="$1"
-
-  # Validate version string
-  VERSION="$(echo -e "${target_version}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
-  [ "${VERSION}" == "" ] && safe_exit "Invalid VERSION provided."
-  [[ ! "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] && safe_exit "Invalid version format"
+  printf "Ensuring %s is installed on your system...", target_version
   [[ ! -d "${GODIR}/versions/${target_version}" ]] && safe_exit "Error: Version ${target_version} not installed."
+  echo "PASS"
 }
 
 remove_sticky_bits() {
   target_version="$1"
+  printf "Removing all sticky bits within %s...", target_version
   chmod -R a-s "${GODIR}/versions/${target_version}"
+  echo "DONE"
 }
 
 remove_immutable_attribute() {
   target_version="$1"
+  printf "Removing immutable attributes within %s...", target_version
   chattr -R -i "${GODIR}/versions/${target_version}" || echo "Warning: chattr failed, please ensure you have the required permissions."
+  echo "DONE"
 }
 
 check_mounted_directory() {
   target_version="$1"
+  printf "Ensuring that %s is not a mounted directory...", target_version
   mountpoint -q "${GODIR}/versions/${target_version}" && safe_exit "Error: ${GODIR}/versions/${target_version} is a mounted directory."
+  echo "PASS"
 }
 
 remove_symlinks() {
+  printf "Removing symlinks for %s...", GODIR
   [ -L "${GODIR}/root" ] && rm -rf "${GODIR}/root"
   [ -L "${GODIR}/bin" ] && rm -rf "${GODIR:?}/bin"
   [ -L "${GODIR}/path" ] && rm -rf "${GODIR}/path"
+  echo "DONE"
 }
 
 remove_version() {
   target_version="$1"
+  echo "Uninstalling Go ${target_version} from ${GODIR}."
   ensure_version_installed "${target_version}"
-
-  # Remove any special permissions and attributes
-  remove_sticky_bits "${target_version}"
-  remove_immutable_attribute "${target_version}"
   check_mounted_directory "${target_version}"
 
-  # If this version is currently active, remove symlinks
+  remove_sticky_bits "${target_version}"
+  remove_immutable_attribute "${target_version}"
+
   current_version=$(cat "${GODIR}/version")
   if [ "${current_version}" == "${target_version}" ]; then
     remove_symlinks
+    rm -f "${GODIR}/version"
   fi
 
-  # Now, remove the version directory
-  rm -rf "${GODIR}/versions/${target_version}"
+  find "${GODIR}/versions/${target_version}" -type d -not -perm -u=w -exec chmod u+w {} \;
+  rm -rf "${GODIR}/versions/${target_version}" || safe_exit "Failed to uninstall Go ${target_version}"
 
   echo "Removed Go version ${target_version}."
+
+  if [ ! -L "${GODIR}/root" ]; then
+    echo "   ∟ FYI: You do not have any version of Go active on your system. Please activate a new version by using sgo..."
+    sh -c "${GODIR}/scripts/sgo list" || safe_exit "Unable to find sgo on your system"
+  fi
 }
 
