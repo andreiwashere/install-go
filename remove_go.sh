@@ -14,18 +14,11 @@ source "${GODIR}/scripts/functions.sh"
 trap cleanup_rgo EXIT INT TERM # perform cleanup on any exit in script
 
 # Define the environment
-VERSION="$(echo -e "${1}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
-[ "${VERSION}" == "" ] && rgo_usage "Invalid VERSION provided."
-echo "Version being checked: ${VERSION}"
-[[ ! "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] && rgo_usage "Invalid version format"
+VERSION="$(echo -e "${1:-"UNKNOWN"}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+[ "${VERSION}" == "" ] && [ "${VERSION}" != "list" ]  && rgo_usage "Invalid VERSION provided."
+[ "${VERSION}" != "list" ] && [[ ! "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] && (rgo_usage "Invalid version format";exit 1)
 
-# Prevent concurrent rgo usage check
-[ -f "${GODIR}/uninstaller.lock" ] && safe_exit "Another rgo $(cat "${GODIR}/uninstaller.lock") is currently running."
-
-# Lock the installer to the version specified
-echo "${VERSION}" > "${GODIR}/uninstaller.lock" # prevent concurrent rgo usage locker
-
-case "$1" in
+case "${1:-""}" in
   list)
     list_versions
     ;;
@@ -38,7 +31,13 @@ case "$1" in
     exit 1
     ;;
   *)
+    echo "Removing ${VERSION} from your ${GODIR}/versions directory..."
+    # Prevent concurrent rgo usage check
+    [ -f "${GODIR}/uninstaller.lock" ] && safe_exit "Another rgo $(cat "${GODIR}/uninstaller.lock") is currently running."
+
+    # Lock the installer to the version specified
+    echo "${VERSION}" > "${GODIR}/uninstaller.lock" # prevent concurrent rgo usage locker
     remove_version "$1"
+    echo "Removed ${HOME}/go/versions/${1} from your system."
     ;;
 esac
-
