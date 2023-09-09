@@ -73,10 +73,20 @@ fi
 tar -C "${GODIR}/versions/${VERSION}" -xzf "${GODIR}/downloads/${GO_DOWNLOAD_TARBALL}"
 { [ -d "${GODIR}/versions/${VERSION}/go" ] && echo "Extracted ${GO_DOWNLOAD_TARBALL}: ${GODIR}/versions/${VERSION}/go"; } || safe_exit "Failed to extract ${GO_DOWNLOAD_TARBALL}"
 
+# Install the Go Shim
+mv "${GODIR}/versions/${VERSION}/go/bin/go" "${GODIR}/versions/${VERSION}/go/bin/go.${VERSION}"
+ln -s "${GODIR}/shims/go" "${GODIR}/versions/${VERSION}/go/bin/go"
+
+# Install the GoFMT Shim
+mv "${GODIR}/versions/${VERSION}/go/bin/gofmt" "${GODIR}/versions/${VERSION}/go/bin/gofmt.${VERSION}"
+ln -s "${GODIR}/shims/gofmt" "${GODIR}/versions/${VERSION}/go/bin/gofmt"
+
 # Set up the system for managed Go environment
 export GOROOT="${GODIR}/root"
 export GOPATH="${GODIR}/path"
 export GOBIN="${GODIR}/bin"
+export GOSHIMS="${GODIR}/shims"
+export GOSCRIPTS="${GODIR}/scripts"
 
 # Create symlink for GOROOT
 [ -L "${GOROOT}" ] || ln -s "${GODIR}/versions/${VERSION}/go" "${GOROOT}"
@@ -96,9 +106,9 @@ BASHRC="${HOME:-"/home/$(whoami)"}/.bashrc"
 ZSHRC="${HOME:-"/home/$(whoami)"}/.zshrc"
 [ -f "${ZSHRC}" ] && set_env_vars "${ZSHRC}"
 
-export PATH=$GOBIN:$PATH
+export PATH=$GOSHIMS:$GOBIN:$GOSCRIPTS:$PATH
 
-GO_VERSION_OUTPUT=$(GOROOT="${GODIR}/versions/${VERSION}/go" GOOS="${GOOS}" GOARCH="${GOARCH}" "${GODIR}/versions/${VERSION}/go/bin/go" version)
+GO_VERSION_OUTPUT=$(GOROOT="${GODIR}/versions/${VERSION}/go" GOPATH="${GODIR}/versions/${VERSION}" GOBIN="${GODIR}/versions/${VERSION}/go/bin" GOOS="${GOOS}" GOARCH="${GOARCH}" "${GODIR}/versions/${VERSION}/go/bin/go.${VERSION}" version)
 
 INSTALLED_VERSION=$(echo "${GO_VERSION_OUTPUT}" | awk '{print $3}' | sed 's/go//')
 INSTALLED_OS=$(echo "${GO_VERSION_OUTPUT}" | awk '{print $4}' | awk -F/ '{print $1}')
@@ -116,12 +126,19 @@ fi
 
 declare -A packages=( ["gotop"]="github.com/cjbassi/gotop" ["go-generate-password"]="github.com/m1/go-generate-password/cmd/go-generate-password" ["bombardier"]="github.com/codesenberg/bombardier" )
 for pkg in "${!packages[@]}"; do
-  GOROOT="${GODIR}/versions/${VERSION}/go" GOPATH="${GODIR}/versions/${VERSION}" GOBIN="${GODIR}/versions/${VERSION}/go/bin" GOOS="${GOOS}" GOARCH="${GOARCH}" "${GODIR}/versions/${VERSION}/go/bin/go" install "${packages[$pkg]}@latest"
+  GOROOT="${GODIR}/versions/${VERSION}/go" GOPATH="${GODIR}/versions/${VERSION}" GOBIN="${GODIR}/versions/${VERSION}/go/bin" GOOS="${GOOS}" GOARCH="${GOARCH}" "${GODIR}/versions/${VERSION}/go/bin/go.${VERSION}" install "${packages[$pkg]}@latest"
   { [ -f "${GODIR}/versions/${VERSION}/go/bin/${pkg}" ] && echo "Installed ${pkg}"; } || safe_exit "Failed to install ${pkg}"
 done
 
 touch "${GODIR}/versions/${VERSION}/installer.lock"
 
-source_shell_config
+rm -rf "${GODIR}/installer.lock"
 
-go version
+while true; do
+    read -r -t 17 -p "Do you want to reload your shell (exec \"$SHELL\")? [y/n] " yn
+    case $yn in
+        [Yy]* ) source_shell_config; break;;
+        [Nn]* ) echo ; exit;;
+        * ) echo "Please answer yes or no.";;
+    esac
+done
