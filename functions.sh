@@ -58,6 +58,8 @@ set_env_vars() {
         ["GOPATH"]=$GOPATH
         ["GOROOT"]=$GOROOT
         ["GOBIN"]=$GOBIN
+        ["GOSHIMS"]=$GOSHIMS
+        ["GOSCRIPTS"]=$GOSCRIPTS
     )
     echo "Patching file: ${target_file}"
 
@@ -68,8 +70,8 @@ set_env_vars() {
         fi
     done
 
-    if ! grep -qxF "export PATH=\$PATH:${GOBIN}" "$target_file"; then
-        echo "export PATH=\$PATH:${GOBIN}" >> "$target_file" || safe_exit "Failed to append PATH in $target_file"
+    if ! grep -qxF "export PATH=\$GOBIN:\$GOSHIMS:\$GOSCRIPTS:\$PATH" "$target_file"; then
+        echo "export PATH=\$GOBIN:\$GOSHIMS:\$GOSCRIPTS:\$PATH" >> "$target_file" || safe_exit "Failed to append PATH in $target_file"
         echo "Appended PATH in $target_file"
     fi
 
@@ -208,6 +210,26 @@ list_versions() {
   echo
 }
 
+list_versions_quiet() {
+  [ ! -d "${GODIR}/versions" ] && safe_exit "No Go installed. Use igo to install a version of Go."
+  echo
+  for dir in "${GODIR}/versions"/*; do
+    if [[ -d "${dir}" ]]; then
+      version=$(basename "${dir}")
+      local current_version
+      [ -f "${GODIR}/version" ] && current_version=$(cat "${GODIR}/version")
+      VERSION="$(echo -e "${version}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+      [ "${VERSION}" == "" ] && continue
+      [[ ! "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] && continue
+      if [ -f "${GODIR}/version" ] && [ "${version}" == "${current_version}" ]; then
+        echo "- ${version} * Activated!"
+      else
+        echo "- ${version}"
+      fi
+    fi
+  done
+}
+
 switch_version() {
   target_version="$1"
 
@@ -321,10 +343,12 @@ remove_version() {
   remove_sticky_bits "${target_version}"
   remove_immutable_attribute "${target_version}"
 
-  current_version=$(cat "${GODIR}/version")
-  if [ "${current_version}" == "${target_version}" ]; then
-    remove_symlinks
-    rm -f "${GODIR}/version"
+  if [ -f "${GODIR}/version" ]; then
+    current_version=$(cat "${GODIR}/version")
+    if [ "${current_version}" == "${target_version}" ]; then
+      remove_symlinks
+      rm -f "${GODIR}/version"
+    fi
   fi
 
   find "${GODIR}/versions/${target_version}" -type d -not -perm -u=w -exec chmod u+w {} \;
@@ -337,4 +361,3 @@ remove_version() {
     sh -c "${GODIR}/scripts/sgo list" || safe_exit "Unable to find sgo on your system"
   fi
 }
-
