@@ -31,6 +31,16 @@ case "${1:-""}" in
     exit 1
     ;;
   *)
+    while true; do
+      echo "rgo will uninstall Go ${VERSION} from ${GODIR}/versions/${VERSION} and any installed Go programs (like gotop)."
+      read -r -p "Do you want to continue? [y/n] " yn
+      case $yn in
+        [Yy]* ) echo "Uninstalling ${VERSION}"; break;;
+        [Nn]* ) echo "Will not uninstall ${VERSION}"; exit;;
+        * ) echo "Please answer yes or no.";;
+      esac
+    done
+
     echo "Removing ${VERSION} from your ${GODIR}/versions directory..."
     # Prevent concurrent rgo usage check
     [ -f "${GODIR}/uninstaller.lock" ] && safe_exit "Another rgo $(cat "${GODIR}/uninstaller.lock") is currently running."
