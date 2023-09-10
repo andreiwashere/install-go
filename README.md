@@ -2,34 +2,44 @@
 
 The project `install-go` or `igo` is a set of helper scripts written in Bash and Go that assist in developers' everyday interactions with Golang development on Linux. It installs on your user profile and does not require sudo permissions of any kind. The directories that it will download and install will be stored to your home directory in the `~/go` path. These scripts were built to serve all.
 
-# Overview
+With the use of shims, we've enabled you the ability to create local overrides to your `sgo <VERSION>` switching of multiple `igo <VERSION>` installations on your system once you complete the installation of this set of scripts. When multiple versions of Go are installed, you can override a local project's version of Go by populating the `.go_version` file with the version, such as `1.21.0` or `1.20.7`.
 
-| Script | Link | Info |
-|--------|------|------|
-| `install_go.sh` | [Source Code for install_go.sh](https://raw.githubusercontent.com/andreiwashere/install-go/main/install_go.sh) | Install `$HOME/go` on your system |
-| `switch_go.sh` | [Source Code for switch_go.sh](https://raw.githubusercontent.com/andreiwashere/install-go/main/switch_go.sh) | Modifies `$HOME/go` active versions |
-| `remove_go.sh` | [Source Code for remove_go.sh](https://raw.githubusercontent.com/andreiwashere/install-go/main/remove_go.sh) | Removes `$HOME/go/<version>` from your system |
-| `backup_go.sh` | [Source Code for backup_go.sh](https://raw.githubusercontent.com/andreiwashere/install-go/main/backup_go.sh) | Archives `$HOME/go` for CI/CD purposes |
-| `analyze_dir.go` | [Source Code for analyze_dir.go](https://raw.githubusercontent.com/andreiwashere/install-go/main/analyze_dir.go) | Generates manifest metadata analysis for directories |
+# Overview
 
 This project consists of 5 programs, `installgo` aka `igo`, `switchgo` aka `sgo`. 
 
 | Name | Binary | Usage |
 |------|--------|-------|
 | **Installer** | `igo` | `igo VERSION [ GOOS ] [ GOARCH ]` |
-| **Switcher** | `sgo` | `sgo list` |
+| **Switcher** | `sgo` | `sgo list\|VERSION` |
 | **Backups** | `bgo` | `bgo` |
-| **Uninstaller** | `rgo` | `rgo list` |
+| **Uninstaller** | `rgo` | `rgo list\|VERSION` |
 | **Manifester** | `manifestdir` | `manifestdir --manifest-dir="${HOME}/go/manifests" --outpre="igo.txt" "${HOME}/go"` |
+| **Go Shim** | `go` | `go version` |
+| **Go FMT Shim* | `gofmt` | `gofmt help` |
 
 All of of these programs are built upon the following structure:
 
 ```bash
 $HOME/go
-$HOME/go/version
-$HOME/go/root -> $HOME/go/versions/<version>/go
-$HOME/go/path -> $HOME/go/versions/<version>
+$HOME/go/backups
 $HOME/go/bin -> $HOME/go/version/<version>/go/bin
+$HOME/go/downloads
+$HOME/manifests
+$HOME/go/path -> $HOME/go/versions/<version>
+$HOME/go/projects -> $HOME/workspace
+$HOME/go/root -> $HOME/go/versions/<version>/go
+$HOME/go/version
+$HOME/go/scripts
+$HOME/go/scripts/bgo -> $HOME/go/install-go/backup_go.sh
+$HOME/go/scripts/functions.sh -> $HOME/go/install-go/functions.sh
+$HOME/go/scripts/igo -> $HOME/go/install-go/install_go.sh
+$HOME/go/scripts/manifestdir -> $HOME/go/install-go/manifestdir
+$HOME/go/scripts/rgo -> $HOME/go/install-go/remove_go.sh
+$HOME/go/scripts/sgo -> $HOME/go/install-go/switch_go.sh
+$HOME/go/shims
+$HOME/go/shims/go -> $HOME/go/install-go/shim_go.sh
+$HOME/go/shims/gofmt -> $HOME/go/install-go/shims_go.sh
 $HOME/go/versions
 $HOME/go/versions/<version>
 $HOME/go/versions/<version>/go
@@ -156,6 +166,8 @@ This installs Go to `${HOME}/go/versions/<VERSION>/go` and sets up your ENV to:
 | `GOBIN` | `~/go/bin` |
 | `GOOS` | argument 2 `GOOS` |
 | `GOARCH` | argument 3 `GOARCH` |
+| `GOSCRIPTS` | `~/go/scripts` |
+| `GOSHIMS` | `~/go/shims` |
 
 ### `sgo`
 
