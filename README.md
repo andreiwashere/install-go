@@ -25,7 +25,7 @@ $HOME/go
 $HOME/go/backups
 $HOME/go/bin -> $HOME/go/version/<version>/go/bin
 $HOME/go/downloads
-$HOME/manifests
+$HOME/go/manifests
 $HOME/go/path -> $HOME/go/versions/<version>
 $HOME/go/projects -> $HOME/workspace
 $HOME/go/root -> $HOME/go/versions/<version>/go
