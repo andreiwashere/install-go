@@ -36,12 +36,12 @@ download_script() {
   fi
 }
 
-download_script "https://raw.githubusercontent.com/andreiwashere/install-go/install_go.sh" "${GODIR}/scripts/igo" "install_go.sh"
-download_script "https://raw.githubusercontent.com/andreiwashere/install-go/switch_go.sh" "${GODIR}/scripts/sgo" "switch_go.sh"
-download_script "https://raw.githubusercontent.com/andreiwashere/install-go/backup_go.sh" "${GODIR}/scripts/bgo" "backup_go.sh"
-download_script "https://raw.githubusercontent.com/andreiwashere/install-go/functions.sh" "${GODIR}/scripts/functions.sh" "functions.sh"
-download_script "https://raw.githubusercontent.com/andreiwashere/install-go/shim_go.sh" "${GODIR}/shims/go" "shim_go.sh"
-download_script "https://raw.githubusercontent.com/andreiwashere/install-go/shim_gofmt.sh" "${GODIR}/shims/gofmt" "shim_gofmt.sh"
+download_script "https://raw.githubusercontent.com/andreiwashere/install-go/main/install_go.sh" "${GODIR}/scripts/igo" "install_go.sh"
+download_script "https://raw.githubusercontent.com/andreiwashere/install-go/main/switch_go.sh" "${GODIR}/scripts/sgo" "switch_go.sh"
+download_script "https://raw.githubusercontent.com/andreiwashere/install-go/main/backup_go.sh" "${GODIR}/scripts/bgo" "backup_go.sh"
+download_script "https://raw.githubusercontent.com/andreiwashere/install-go/main/functions.sh" "${GODIR}/scripts/functions.sh" "functions.sh"
+download_script "https://raw.githubusercontent.com/andreiwashere/install-go/main/shim_go.sh" "${GODIR}/shims/go" "shim_go.sh"
+download_script "https://raw.githubusercontent.com/andreiwashere/install-go/main/shim_gofmt.sh" "${GODIR}/shims/gofmt" "shim_gofmt.sh"
 
 current_shell=$(basename "${SHELL:-"/bin/bash"}")
 
