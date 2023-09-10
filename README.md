@@ -15,8 +15,8 @@ This project consists of 5 programs, `installgo` aka `igo`, `switchgo` aka `sgo`
 | **Backups** | `bgo` | `bgo` |
 | **Uninstaller** | `rgo` | `rgo list\|VERSION` |
 | **Manifester** | `manifestdir` | `manifestdir --manifest-dir="${HOME}/go/manifests" --outpre="igo.txt" "${HOME}/go"` |
-| **Go Shim** | `go` | `go version` |
-| **Go FMT Shim** | `gofmt` | `gofmt help` |
+| **Go Shim** | `go` | `go ...` |
+| **Go FMT Shim** | `gofmt` | `gofmt ...` |
 
 All of of these programs are built upon the following structure:
 
