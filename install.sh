@@ -39,9 +39,17 @@ download_script() {
 download_script "https://raw.githubusercontent.com/andreiwashere/install-go/main/install_go.sh" "${GODIR}/scripts/igo" "install_go.sh"
 download_script "https://raw.githubusercontent.com/andreiwashere/install-go/main/switch_go.sh" "${GODIR}/scripts/sgo" "switch_go.sh"
 download_script "https://raw.githubusercontent.com/andreiwashere/install-go/main/backup_go.sh" "${GODIR}/scripts/bgo" "backup_go.sh"
+download_script "https://raw.githubusercontent.com/andreiwashere/install-go/main/remove_go.sh" "${GODIR}/scripts/rgo" "remove_go.sh"
 download_script "https://raw.githubusercontent.com/andreiwashere/install-go/main/functions.sh" "${GODIR}/scripts/functions.sh" "functions.sh"
 download_script "https://raw.githubusercontent.com/andreiwashere/install-go/main/shim_go.sh" "${GODIR}/shims/go" "shim_go.sh"
 download_script "https://raw.githubusercontent.com/andreiwashere/install-go/main/shim_gofmt.sh" "${GODIR}/shims/gofmt" "shim_gofmt.sh"
+
+chmod +x "${GODIR}/shims/go"
+chmod +x "${GODIR}/shims/gofmt"
+chmod +x "${GODIR}/scripts/bgo"
+chmod +x "${GODIR}/scripts/igo"
+chmod +x "${GODIR}/scripts/rgo"
+chmod +x "${GODIR}/scripts/sgo"
 
 current_shell=$(basename "${SHELL:-"/bin/bash"}")
 
