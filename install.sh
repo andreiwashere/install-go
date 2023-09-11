@@ -59,7 +59,7 @@ case "$current_shell" in
 esac
 
 if [ -f "$rcfile" ]; then
-  ! grep -qxF "export PATH=${GODIR}/scripts" "$rcfile" && echo "export PATH=${GODIR}/scripts:\$PATH" >> "$rcfile"
+  ! grep -qxF "export PATH=${GODIR}/scripts:${GODIR}/shims" "$rcfile" && echo "export PATH=${GODIR}/scripts:${GODIR}/shims:\$PATH" >> "$rcfile"
   set +u
   # shellcheck disable=SC1090
   source "${rcfile}"
