@@ -17,6 +17,13 @@ safe_exit() {
 
 GODIR="${HOME:-"/home/$(whoami)"}/go" # where all things go go
 
+# Set up the system for managed Go environment
+export GOROOT="${GODIR}/root"
+export GOPATH="${GODIR}/path"
+export GOBIN="${GODIR}/bin"
+export GOSHIMS="${GODIR}/shims"
+export GOSCRIPTS="${GODIR}/scripts"
+
 # Create the Go Directory
 mkdir -p "${GODIR}/backups" "${GODIR}/manifests" "${GODIR}/scripts" "${GODIR}/shims"
 
@@ -78,13 +85,6 @@ chmod +x "${GODIR}/scripts/bgo"
 chmod +x "${GODIR}/scripts/igo"
 chmod +x "${GODIR}/scripts/rgo"
 chmod +x "${GODIR}/scripts/sgo"
-
-# Set up the system for managed Go environment
-export GOROOT="${GODIR}/root"
-export GOPATH="${GODIR}/path"
-export GOBIN="${GODIR}/bin"
-export GOSHIMS="${GODIR}/shims"
-export GOSCRIPTS="${GODIR}/scripts"
 
 BASHRC="${HOME:-"/home/$(whoami)"}/.bashrc"
 [ -f "${BASHRC}" ] && set_env_vars "${BASHRC}"
