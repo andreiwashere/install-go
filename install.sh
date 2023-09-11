@@ -36,6 +36,34 @@ download_script() {
   fi
 }
 
+set_env_vars() {
+    local target_file="${1}"
+    declare -A env_vars=(
+        ["GOOS"]=$GOOS
+        ["GOARCH"]=$GOARCH
+        ["GOPATH"]=$GOPATH
+        ["GOROOT"]=$GOROOT
+        ["GOBIN"]=$GOBIN
+        ["GOSHIMS"]=$GOSHIMS
+        ["GOSCRIPTS"]=$GOSCRIPTS
+    )
+    echo "Patching file: ${target_file}"
+
+    for var in "${!env_vars[@]}"; do
+        if ! grep -qxF "export ${var}=${env_vars[$var]}" "$target_file"; then
+            echo "export ${var}=${env_vars[$var]}" >> "$target_file" || safe_exit "Failed to set ${var} in $target_file"
+            echo "Set ${var} in $target_file to ${env_vars[$var]}"
+        fi
+    done
+
+    if ! grep -qxF "export PATH=\$GOBIN:\$GOSHIMS:\$GOSCRIPTS:\$PATH" "$target_file"; then
+        echo "export PATH=\$GOBIN:\$GOSHIMS:\$GOSCRIPTS:\$PATH" >> "$target_file" || safe_exit "Failed to append PATH in $target_file"
+        echo "Appended PATH in $target_file"
+    fi
+
+    echo "Done patching file: ${target_file}"
+}
+
 download_script "https://raw.githubusercontent.com/andreiwashere/install-go/main/install_go.sh" "${GODIR}/scripts/igo" "install_go.sh"
 download_script "https://raw.githubusercontent.com/andreiwashere/install-go/main/switch_go.sh" "${GODIR}/scripts/sgo" "switch_go.sh"
 download_script "https://raw.githubusercontent.com/andreiwashere/install-go/main/backup_go.sh" "${GODIR}/scripts/bgo" "backup_go.sh"
@@ -87,30 +115,4 @@ else
   echo "$rcfile not found."
 fi
 
-set_env_vars() {
-    local target_file="${1}"
-    declare -A env_vars=(
-        ["GOOS"]=$GOOS
-        ["GOARCH"]=$GOARCH
-        ["GOPATH"]=$GOPATH
-        ["GOROOT"]=$GOROOT
-        ["GOBIN"]=$GOBIN
-        ["GOSHIMS"]=$GOSHIMS
-        ["GOSCRIPTS"]=$GOSCRIPTS
-    )
-    echo "Patching file: ${target_file}"
 
-    for var in "${!env_vars[@]}"; do
-        if ! grep -qxF "export ${var}=${env_vars[$var]}" "$target_file"; then
-            echo "export ${var}=${env_vars[$var]}" >> "$target_file" || safe_exit "Failed to set ${var} in $target_file"
-            echo "Set ${var} in $target_file to ${env_vars[$var]}"
-        fi
-    done
-
-    if ! grep -qxF "export PATH=\$GOBIN:\$GOSHIMS:\$GOSCRIPTS:\$PATH" "$target_file"; then
-        echo "export PATH=\$GOBIN:\$GOSHIMS:\$GOSCRIPTS:\$PATH" >> "$target_file" || safe_exit "Failed to append PATH in $target_file"
-        echo "Appended PATH in $target_file"
-    fi
-
-    echo "Done patching file: ${target_file}"
-}
