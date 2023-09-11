@@ -51,6 +51,21 @@ chmod +x "${GODIR}/scripts/igo"
 chmod +x "${GODIR}/scripts/rgo"
 chmod +x "${GODIR}/scripts/sgo"
 
+# Set up the system for managed Go environment
+export GOROOT="${GODIR}/root"
+export GOPATH="${GODIR}/path"
+export GOBIN="${GODIR}/bin"
+export GOSHIMS="${GODIR}/shims"
+export GOSCRIPTS="${GODIR}/scripts"
+
+BASHRC="${HOME:-"/home/$(whoami)"}/.bashrc"
+[ -f "${BASHRC}" ] && set_env_vars "${BASHRC}"
+
+ZSHRC="${HOME:-"/home/$(whoami)"}/.zshrc"
+[ -f "${ZSHRC}" ] && set_env_vars "${ZSHRC}"
+
+export PATH=$GOSHIMS:$GOBIN:$GOSCRIPTS:$PATH
+
 current_shell=$(basename "${SHELL:-"/bin/bash"}")
 
 case "$current_shell" in
@@ -67,7 +82,6 @@ case "$current_shell" in
 esac
 
 if [ -f "$rcfile" ]; then
-  ! grep -qxF "export PATH=${GODIR}/scripts:${GODIR}/shims" "$rcfile" && echo "export PATH=${GODIR}/scripts:${GODIR}/shims:\$PATH" >> "$rcfile"
   exec "${SHELL:-"/bin/bash"}"
 else
   echo "$rcfile not found."
