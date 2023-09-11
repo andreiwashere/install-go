@@ -6,11 +6,15 @@ set -u  # SECURITY: Exit if an unset variable is used to prevent potential secur
 set -C  # SECURITY: Prevent existing files from being overwritten using the '>' operator.
 [ "${VERBOSE:-0}" == "1" ] && set -v  # DEVELOPER EXPERIENCE: Print shell input lines as they are read, aiding in debugging.
 
+GODIR="${HOME:-"/home/$(whoami)"}/go" # where all things go go
+
 safe_exit() {
   local msg="${1:-UnexpectedError}"
   echo "${msg}"
   exit 1
 }
+
+[ -d "${GODIR}" ] && [ -f "${GODIR}/shims/go" ] && safe_exit "Already installed at ${GODIR}."
 
 # No Windows support
 [ "$(uname)" != "Linux" ] && safe_exit "HOLD UP: igo is only supported on Linux."
@@ -47,8 +51,6 @@ case $machine in
     aarch64) goarch="arm64";;
     *)       goarch="unknown";;
 esac
-
-GODIR="${HOME:-"/home/$(whoami)"}/go" # where all things go go
 
 # Set up the system for managed Go environment
 export GOOS=$goos
