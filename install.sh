@@ -15,9 +15,44 @@ safe_exit() {
 # No Windows support
 [ "$(uname)" != "Linux" ] && safe_exit "HOLD UP: igo is only supported on Linux."
 
+# Extract the operating system and machine details
+os=$(uname -s)
+machine=$(uname -m)
+goos=""
+goarch=""
+
+# Translate them to GOOS and GOARCH values
+case $os in
+    Linux)     goos="linux";;
+    Darwin)    goos="darwin";;
+    WindowsNT) goos="windows";;
+    *)         goos="unknown";;
+esac
+
+case $machine in
+    x86_64)  goarch="amd64";;
+    i386)    goarch="386";;
+    i686)    goarch="386";;
+    armv7l)  # On many systems, armv7 will report as armv7l
+        goarch="arm"
+        GOARM="7"
+        export GOARM
+        ;;
+    arm*)
+        # Defaulting to ARMv6 for all other ARM versions (this may or may not suit your needs)
+        goarch="arm"
+        GOARM="6"
+        export GOARM
+        ;;
+    aarch64) goarch="arm64";;
+    *)       goarch="unknown";;
+esac
+
 GODIR="${HOME:-"/home/$(whoami)"}/go" # where all things go go
 
 # Set up the system for managed Go environment
+export GOOS=$goos
+export GOARCH=$goarch
 export GOROOT="${GODIR}/root"
 export GOPATH="${GODIR}/path"
 export GOBIN="${GODIR}/bin"
