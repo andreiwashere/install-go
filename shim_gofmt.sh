@@ -45,4 +45,14 @@ fi
 # Invoke the real go binary with any arguments passed to the shim
 GOBINARY="$(get_go_binary_path_for_version "${version}")"
 [ "${GOBINARY}"  == "" ] && safe_exit "You're using a .go_version override of ${version} but it isn't installed yet. You can use: $(sgo qlist)"
+
+GOBIN="${GODIR}/versions/${version}/go/bin"
+GOROOT="${GODIR}/versions/${version}/go"
+GOPATH="${GODIR}/versions/${version}"
+
+export GOBIN
+export GOROOT
+export GOPATH
+
 exec "${GOBINARY}" "$@"
+
