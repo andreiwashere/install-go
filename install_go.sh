@@ -61,7 +61,7 @@ GO_DOWNLOAD_TARBALL="go${VERSION}.${GOOS}-${GOARCH}.tar.gz"
 
 # Download Go archive
 if [ ! -f "${GODIR}/downloads/${GO_DOWNLOAD_TARBALL}" ]; then
-  wget --https-only --secure-protocol=auto --no-cache -O "${GODIR}/downloads/${GO_DOWNLOAD_TARBALL}" "https://go.dev/dl/${GO_DOWNLOAD_TARBALL}" < /dev/null > /dev/null 2>&1 || safe_exit "Downloading https://go.dev/dl/${GO_DOWNLOAD_TARBALL} failed: NOT FOUND"
+  wget --secure-protocol=auto --no-cache -O "${GODIR}/downloads/${GO_DOWNLOAD_TARBALL}" "https://go.dev/dl/${GO_DOWNLOAD_TARBALL}" < /dev/null > /dev/null 2>&1 || safe_exit "Downloading https://go.dev/dl/${GO_DOWNLOAD_TARBALL} failed: NOT FOUND"
 fi
 { [ -f "${GODIR}/downloads/${GO_DOWNLOAD_TARBALL}" ] && echo "Downloaded file: ${GO_DOWNLOAD_TARBALL}"; } || safe_exit "Failed to download ${GO_DOWNLOAD_TARBALL}"
 
