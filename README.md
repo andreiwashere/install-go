@@ -144,6 +144,12 @@ wget --no-cache https://raw.githubusercontent.com/andreiwashere/install-go/main/
 ./install.sh
 ```
 
+OR
+
+```bash
+curl https://raw.githubusercontent.com/andreiwashere/install-go/main/install.sh -L > install-igo.sh && sh install-igo.sh
+```
+
 ## Individual Components
 
 ### `igo`
