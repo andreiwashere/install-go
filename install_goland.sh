@@ -89,12 +89,13 @@ tar_url="https://download-cdn.jetbrains.com/go/${goland_tar}"
 if [[ ! -f "${goland_checksum}" ]]; then
   curl -f -L "${checksum_url}" -o "${goland_checksum}" || safe_exit "Failed to download ${checksum_url}"
 fi
-goland_checksum_value="$(sha256sum "${goland_tar}")"
 
 # Tarball
 if [[ ! -f "${goland_tar}" ]]; then
   curl -f -L "${tar_url}" -o "${goland_tar}"  || safe_exit "Failed to download ${tar_url}"
 fi
+
+goland_checksum_value="$(sha256sum "${goland_tar}")"
 
 # Security Check
 if [[ "$(cat "${goland_checksum}")" != "${goland_checksum_value}" ]]; then
@@ -212,3 +213,6 @@ fi
 ! grep -q '^export GOSHIMS' "${rc_file}" && echo "export GOSHIMS=\"${GODIR}/shims\"" | tee -a "${rc_file}" > /dev/null
 ! grep -q '^export GOOS' "${rc_file}" && echo "export GOOS=\"$(uname | tr '[:upper:]' '[:lower:]')\"" | tee -a "${rc_file}" > /dev/null
 ! grep -q '^export GOPATH' "${rc_file}" && echo "export GOPATH=\"${GODIR}/path\"" | tee -a "${rc_file}" > /dev/null
+
+
+
