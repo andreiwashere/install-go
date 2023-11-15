@@ -4,12 +4,14 @@
 [ "${DEBUG:-0}" == "1" ] && set -x  # DEVELOPER EXPERIENCE: Enable debug mode, printing each command before it's executed.
 
 declare version
+declare default_version
 declare goland_tar
 declare goland_shim
 declare checksum_url
 declare tar_url
 declare goland_checksum
 declare goland_checksum_value
+declare upstream_checksum_value
 declare arch
 declare current_shell
 declare rc_file
@@ -65,11 +67,26 @@ EOF
 fi
 
 # Version
-version="${1:-'2023.2.5'}"
+default_version="2023.2.5"
+version="${1:-"${default_version}"}"
 version_regex='^[0-9]{4}\.[0-9]{1,2}\.[0-9]{1,2}$'
-if ! [[ $version =~ $version_regex ]]; then
-  echo "Invalid version specified. Default: ${version}"
-  exit 1
+if [[ $version =~ $version_regex ]]; then
+  echo "Installing GoLand ${version}"
+else
+  echo "Invalid version specified. Installing default version ${default_version}."
+  declare bad_version_check
+  while true; do
+    read -r -p "Do you want to install GoLand ${default_version} despite specifying ${version} [that is invalid?] (y|n): " bad_version_check
+    case "${bad_version_check}" in
+      [Yy]*)
+        version="2023.2.5"
+        break
+        ;;
+      *)
+        safe_exit "You have indicated that you did not want to install GoLand ${default_version}."
+        ;;
+    esac
+  done
 fi
 
 # Workspace
@@ -95,14 +112,15 @@ if [[ ! -f "${goland_tar}" ]]; then
   curl -f -L "${tar_url}" -o "${goland_tar}"  || safe_exit "Failed to download ${tar_url}"
 fi
 
-goland_checksum_value="$(sha256sum "${goland_tar}")"
+goland_checksum_value="$(sha256sum "${goland_tar}" | awk '{print $1}')"
+upstream_checksum_value="$(awk '{print $1}' "${goland_checksum}")"
 
 # Security Check
-if [[ "$(cat "${goland_checksum}")" != "${goland_checksum_value}" ]]; then
+if [[ "${upstream_checksum_value}" != "${goland_checksum_value}" ]]; then
   echo "DANGER! Checksums do not match."
   echo
   echo "${goland_tar} = ${goland_checksum_value}"
-  echo "${checksum_url} = $(cat "${goland_checksum}")"
+  echo "${checksum_url} = ${upstream_checksum_value}"
   echo
   echo "${goland_checksum_value} != $(cat "${goland_checksum}")"
   echo
