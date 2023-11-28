@@ -92,6 +92,9 @@ export GOSCRIPTS="${GODIR}/scripts"
 [ -L "${GOROOT}" ] || ln -s "${GODIR}/versions/${VERSION}/go" "${GOROOT}"
 { [ -L "${GOROOT}" ] && echo "Configure GOROOT: ${GOROOT} -> ${GODIR}/versions/${VERSION}/go"; } || safe_exit "Failed to create GOROOT symlink"
 
+# Ensure GOBIN is not a directory (bug caused from install_goland.sh)
+[ -d "${GOBIN}" ] && mv "${GOBIN}" "${GOBIN}.bak" && echo "Moved ${GOBIN} to ${GOBIN}.bak"
+
 # Create symlink for GOBIN
 [ -L "${GOBIN}" ] || ln -s "${GODIR}/versions/${VERSION}/go/bin" "${GOBIN}"
 { [ -L "${GOBIN}" ] && echo "Configure GOBIN: ${GOBIN} -> ${GODIR}/versions/${VERSION}/go/bin"; } || safe_exit "Failed to create GOBIN symlink"
