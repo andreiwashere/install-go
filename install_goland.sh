@@ -147,10 +147,7 @@ curl -f -H "Cache-Control: no-cache" -o "${goland_shim}" -L "https://raw.githubu
 chmod +x "${goland_shim}"
 
 # Install shim into go bin
-mkdir -p "${GOBIN}"
-
-[[ -d "${GOBIN}" ]] && { cd "${GOBIN}" || { echo "Can't CD into ${GOBIN}."; exit 1; } }
-[[ ! -L "${GOBIN}/goland" ]] && ln -s "${goland_shim}" "${GOBIN}/goland"
+[[ -L "${GOBIN}" ]] && [[ ! -L "${GOBIN}/goland" ]] && ln -s "${goland_shim}" "${GOBIN}/goland"
 
 arch="$(uname -m)"
 if [[ "$(uname -m)" == "x86_64" ]]; then
